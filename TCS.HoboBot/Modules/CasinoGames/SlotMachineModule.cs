@@ -8,10 +8,22 @@ namespace TCS.HoboBot.Modules.CasinoGames;
 
 /// <summary>
 /// A simple 3‑reel slot‑machine game that mirrors the UX patterns of <see cref="BlackJackModule"/>.
-/// ────────────────────────────────────────────────────────────────────────────────
-/// • /slots <bet>      – Pull the handle once.
-/// • Spin Again button – Instant re‑spin with the **same** bet.
 /// </summary>
+/// <remarks>
+/// This module provides a slot machine game with the following features:
+/// <list type="bullet">
+/// <item>
+/// <description>
+/// <c>/slots &lt;bet&gt;</c> – Pull the handle once to spin the reels.
+/// </description>
+/// </item>
+/// <item>
+/// <description>
+/// Spin Again button – Allows the user to instantly re‑spin the reels with the **same** bet.
+/// </description>
+/// </item>
+/// </list>
+/// </remarks>
 public sealed class SlotMachineModule : InteractionModuleBase<SocketInteractionContext> {
     /* ─────────── symbols / wheels ─────────── */
 
@@ -40,7 +52,7 @@ public sealed class SlotMachineModule : InteractionModuleBase<SocketInteractionC
      * Hot dog x3 →  30×
      *  🔔 x3  →  20×
      *  fruit x3 (🍒🍋🍊🍑) → 10×
-     *  two 7s             →   5×
+     *  two 7 s             →   5×
      *  any two of a kind  →   2×
      *  otherwise          →   0×
      */
@@ -53,7 +65,6 @@ public sealed class SlotMachineModule : InteractionModuleBase<SocketInteractionC
         return allEqual switch {
             true when r[0] == Icon.Seven => 100m,
             true when r[0] == Icon.Bar => 50m,
-            // hotdog
             true when r[0] == Icon.Hotdog => 30m,
             true when r[0] == Icon.Bell => 20m,
             true when allFruits => 10m,
@@ -65,7 +76,7 @@ public sealed class SlotMachineModule : InteractionModuleBase<SocketInteractionC
 
     [SlashCommand( "slots", "Pull a three‑reel slot machine." )]
     public async Task SlotsAsync(float bet) {
-        // Validate initial bet (slash command only)
+        // Validate the initial bet (slash command only)
         if ( !ValidateBet( ref bet, out string? error ) ) {
             await RespondAsync( error );
             return;
