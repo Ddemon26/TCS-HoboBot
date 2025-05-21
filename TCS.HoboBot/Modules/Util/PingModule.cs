@@ -170,7 +170,7 @@ public class ProstituteModule : InteractionModuleBase<SocketInteractionContext> 
         }
 
         // ---------------- Roll event ----------------
-        (float delta, string story) = PrositutionEvents.Roll();
+        (float delta, string story) = ProstitutionEvents.Roll();
 
         // ---------------- Apply balance (no negatives) ----------------
         float newBalance = PlayersWallet.Cash.AddOrUpdate(
