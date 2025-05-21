@@ -15,8 +15,6 @@ public class BotService : IHostedService {
     readonly IServiceProvider m_services;
     readonly IConfiguration m_config;
 
-    //const ulong GUILD_ID = 1047781241010794506;
-
     public BotService(
         DiscordSocketClient client,
         InteractionService interactions,
@@ -43,17 +41,9 @@ public class BotService : IHostedService {
             .Build();
 
         bool tryParse = ulong.TryParse(config["GUILD_ID"], out ulong guildId);
-        // //log the guildId
-        // Console.WriteLine( $"GUILD_ID: {guildId}" );
-        //
-        // if ( !tryParse ) {
-        //     Console.WriteLine( "Error: GUILD_ID is not a valid ulong." );
-        //     return;
-        // }
 
         // register slash commands when the gateway is ready
         m_client.Ready += async () => {
-            //log the guildId
             Console.WriteLine( $"GUILD_ID: {guildId}" );
         
             if ( !tryParse ) {
