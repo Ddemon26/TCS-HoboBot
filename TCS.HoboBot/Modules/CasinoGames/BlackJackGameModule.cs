@@ -3,6 +3,9 @@ using System.Diagnostics.CodeAnalysis;
 using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
+using TCS.HoboBot.Data;
+
+namespace TCS.HoboBot.Modules.CasinoGames;
 
 public class BlackJackModule : InteractionModuleBase<SocketInteractionContext>
 {
@@ -85,8 +88,8 @@ public class BlackJackModule : InteractionModuleBase<SocketInteractionContext>
             List<Card> tmp = new List<Card>(m_decks * 52);
             for (var d = 0; d < m_decks; d++)
                 foreach (Suit s in Enum.GetValues(typeof(Suit)))
-                    foreach (Rank r in Enum.GetValues(typeof(Rank)))
-                        tmp.Add(new Card(r, s));
+                foreach (Rank r in Enum.GetValues(typeof(Rank)))
+                    tmp.Add(new Card(r, s));
 
             for (int n = tmp.Count - 1; n > 0; n--)
             {
@@ -351,7 +354,7 @@ public class BlackJackModule : InteractionModuleBase<SocketInteractionContext>
         if (!finished)
         {
             cb.WithButton("Hit", $"bj_hit_{uid}", ButtonStyle.Primary)
-              .WithButton("Stand", $"bj_stand_{uid}", ButtonStyle.Danger);
+                .WithButton("Stand", $"bj_stand_{uid}", ButtonStyle.Danger);
         }
         return cb;
     }

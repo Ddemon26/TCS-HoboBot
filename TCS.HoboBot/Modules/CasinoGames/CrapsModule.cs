@@ -2,6 +2,7 @@
 using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
+using TCS.HoboBot.Data;
 
 // Assuming PlayersWallet exists in a similar fashion as for SlotMachineModule
 // e.g., namespace YourBotNamespace;
@@ -10,6 +11,8 @@ using Discord.WebSocket;
 //     public static void SubtractFromBalance(ulong userId, float amount) { /* ... */ }
 //     public static float GetBalance(ulong userId) { /* ... */ return 0f; }
 // }
+
+namespace TCS.HoboBot.Modules.CasinoGames;
 
 /// <summary>
 /// A simplified Craps game.

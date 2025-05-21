@@ -1,4 +1,5 @@
 ﻿using System.Security.Cryptography;
+namespace TCS.HoboBot.ActionEvents;
 
 public static class PrositutionEvents {
     // Immutable record representing one prostitution event

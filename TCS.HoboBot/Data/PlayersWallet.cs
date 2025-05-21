@@ -1,6 +1,8 @@
 ﻿using System.Collections.Concurrent;
 using System.Text.Json;
 
+namespace TCS.HoboBot.Data;
+
 public static class PlayersWallet {
     public static readonly ConcurrentDictionary<ulong, float> Cash = new();
     

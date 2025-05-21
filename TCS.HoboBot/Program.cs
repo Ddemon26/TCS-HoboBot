@@ -3,7 +3,7 @@ using Discord.WebSocket;
 using Discord.Interactions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.DependencyInjection;
-using MyBot.Middleware;
+using TCS.HoboBot;
 
 var host = Host.CreateDefaultBuilder( args )
     .ConfigureServices( (_, services) => {

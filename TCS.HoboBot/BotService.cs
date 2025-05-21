@@ -1,9 +1,13 @@
+using System.Reflection;
 using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
-using System.Reflection;
+using TCS.HoboBot.Data;
+using TCS.HoboBot.Modules;
+
+namespace TCS.HoboBot;
 
 public class BotService : IHostedService {
     readonly DiscordSocketClient m_client;

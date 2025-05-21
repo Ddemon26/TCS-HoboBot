@@ -3,6 +3,8 @@ using System.Text;
 using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
+using TCS.HoboBot.Data;
+namespace TCS.HoboBot.Modules.CasinoGames;
 
 public enum RouletteBetType {
     StraightUp, Split, Street, Corner, SixLine, TopLine, // Inside Bets

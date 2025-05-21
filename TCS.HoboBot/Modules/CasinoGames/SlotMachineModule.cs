@@ -2,6 +2,9 @@
 using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
+using TCS.HoboBot.Data;
+
+namespace TCS.HoboBot.Modules.CasinoGames;
 
 /// <summary>
 /// A simple 3‑reel slot‑machine game that mirrors the UX patterns of <see cref="BlackJackModule"/>.

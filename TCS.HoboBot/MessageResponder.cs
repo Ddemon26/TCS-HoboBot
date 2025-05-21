@@ -1,9 +1,8 @@
-using Discord.WebSocket;
-using Discord;
-using Microsoft.Extensions.Hosting;
 using System.Collections.Concurrent;
-
-namespace MyBot.Middleware {
+using Discord;
+using Discord.WebSocket;
+using Microsoft.Extensions.Hosting;
+namespace TCS.HoboBot {
     /// <summary>
     ///     Watches incoming messages, replies to simple keywords, **and** rate‑limits exact‑duplicate spam.
     ///     Users are muted <strong>only in the channel where the spam happened</strong> by adding a

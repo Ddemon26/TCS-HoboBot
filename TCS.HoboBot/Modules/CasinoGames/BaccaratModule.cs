@@ -2,6 +2,9 @@
 using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
+using TCS.HoboBot.Data;
+
+namespace TCS.HoboBot.Modules.CasinoGames;
 
 /// <summary>
 /// Baccarat game module for Discord **with side‑bets** (Dragon Bonus & Pair bets).

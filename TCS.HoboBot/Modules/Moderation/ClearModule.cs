@@ -1,6 +1,8 @@
 ﻿using Discord;
 using Discord.Interactions;
 
+namespace TCS.HoboBot.Modules.Moderation;
+
 [DefaultMemberPermissions( GuildPermission.Administrator )] // ⬅️ who may *use* it
 [RequireBotPermission( GuildPermission.ManageMessages )]
 public class ClearModule : InteractionModuleBase<SocketInteractionContext> {

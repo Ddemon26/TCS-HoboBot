@@ -2,6 +2,8 @@
 using System.Text.Json;
 using Discord;
 using Discord.Interactions;
+using TCS.HoboBot.Data;
+namespace TCS.HoboBot.Modules;
 
 public class CollectPropertyModule : InteractionModuleBase<SocketInteractionContext> {
     [SlashCommand( "property_collect", "Collect money from your properties" )]

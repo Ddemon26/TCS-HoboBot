@@ -1,6 +1,9 @@
 ﻿using System.Collections.Concurrent;
 using Discord.Interactions;
 using Discord.WebSocket;
+using TCS.HoboBot.ActionEvents;
+using TCS.HoboBot.Data;
+namespace TCS.HoboBot.Modules.Util;
 
 public class SpinWheelModule : InteractionModuleBase<SocketInteractionContext> {
     public static ConcurrentDictionary<ulong, DateTimeOffset> NextSpin = new();
