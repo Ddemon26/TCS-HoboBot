@@ -17,7 +17,7 @@ public sealed class SlotMachineModule : InteractionModuleBase<SocketInteractionC
 
     enum Icon { Cherry, Lemon, Orange, Plum, Bell, Hotdog, Bar, Seven }
 
-    static readonly string[] WheelEmojis = {
+    static readonly string[] WheelEmojis = [
         "🍒", // Cherry
         "🍋", // Lemon
         "🍊", // Orange
@@ -26,7 +26,7 @@ public sealed class SlotMachineModule : InteractionModuleBase<SocketInteractionC
         "🌭", // Hot dog (hot dog)
         "🍷", // Bar (wine glass ≈ bar)
         "7️⃣", // Seven
-    };
+    ];
 
     const int REELS = 3;
     static readonly Random Rng = new();
