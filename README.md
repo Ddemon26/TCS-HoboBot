@@ -66,7 +66,7 @@ After the first run, slash‑commands are registered instantly in the *test* gui
 | Key             | How to set                           | Purpose                                                                                                       |
 | --------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
 | `DISCORD_TOKEN` | Secret Store or environment variable | **Required.** Bot login token obtained from [https://discord.com/developers](https://discord.com/developers). |
-| `GUILD_ID`      | `BotService.cs` constant             | *Optional.* Guild to which commands are registered instantly while coding.                                    |
+| `GUILD_ID`      | Secret Store or environment variable            | **Required.** Guild to which commands are registered instantly while coding.                                    |
 
 All other settings use sane defaults. If you need additional config points, inject `IConfiguration` into a module or service – `Program.cs` already wires `Host.CreateDefaultBuilder()` which loads *appsettings.json*, environment variables and user‑secrets.
 
