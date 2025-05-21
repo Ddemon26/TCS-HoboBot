@@ -15,7 +15,7 @@ public class BotService : IHostedService {
     readonly IServiceProvider m_services;
     readonly IConfiguration m_config;
 
-    const ulong GUILD_ID = 1047781241010794506;
+    //const ulong GUILD_ID = 1047781241010794506;
 
     public BotService(
         DiscordSocketClient client,
@@ -36,11 +36,33 @@ public class BotService : IHostedService {
 
         // load modules
         await m_interactions.AddModulesAsync( Assembly.GetExecutingAssembly(), m_services );
+        
+        // ---- token handling -------------------------------------------------
+        var config = new ConfigurationBuilder()
+            .AddUserSecrets<Program>()
+            .Build();
+
+        bool tryParse = ulong.TryParse(config["GUILD_ID"], out ulong guildId);
+        // //log the guildId
+        // Console.WriteLine( $"GUILD_ID: {guildId}" );
+        //
+        // if ( !tryParse ) {
+        //     Console.WriteLine( "Error: GUILD_ID is not a valid ulong." );
+        //     return;
+        // }
 
         // register slash commands when the gateway is ready
         m_client.Ready += async () => {
+            //log the guildId
+            Console.WriteLine( $"GUILD_ID: {guildId}" );
+        
+            if ( !tryParse ) {
+                Console.WriteLine( "Error: GUILD_ID is not a valid ulong." );
+                return;
+            }
+            
             // Instant test-guild registration
-            await m_interactions.RegisterCommandsToGuildAsync( GUILD_ID, deleteMissing: true );
+            await m_interactions.RegisterCommandsToGuildAsync( guildId, deleteMissing: true );
 
             // Global registration takes up to 1 h – keep it commented for now (For production ready)
             // await _interactions.RegisterCommandsGloballyAsync();
@@ -56,11 +78,7 @@ public class BotService : IHostedService {
 
         await PlayersWallet.LoadAsync();
         await PlayersProperties.LoadAsync();
-
-        // ---- token handling -------------------------------------------------
-        var config = new ConfigurationBuilder()
-            .AddUserSecrets<Program>()
-            .Build();
+        
 
         string? token = config["DISCORD_TOKEN"];
         if ( string.IsNullOrEmpty( token ) ) {
