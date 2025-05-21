@@ -12,7 +12,7 @@ public static class PlayersWallet {
     public static readonly ConcurrentDictionary<ulong, DateTimeOffset> NextJob = new();
     public static readonly TimeSpan JobCooldown = TimeSpan.FromMinutes( 10 );
     
-    public static ConcurrentDictionary<ulong, DateTimeOffset> NextRob = new();
+    public static readonly ConcurrentDictionary<ulong, DateTimeOffset> NextRob = new();
     public static readonly TimeSpan RobCooldown = TimeSpan.FromMinutes( 10 );
     static readonly string FilePath = "wallets.json";
 
