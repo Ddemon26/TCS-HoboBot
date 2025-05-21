@@ -7,11 +7,10 @@ using TCS.HoboBot.Data;
 namespace TCS.HoboBot.Modules.CasinoGames;
 
 /// <summary>
-/// Baccarat game module for Discord **with side‑bets** (Dragon Bonus & Pair bets).
-/// ────────────────────────────────────────────────────────────────────────────────
-/// • /baccarat <main_bet_amount> <player|banker|tie> [side_bet_type] [side_bet_amount]
+/// Baccarat game module for Discord with side‑bets (Dragon Bonus &amp; Pair bets).
+/// • /baccarat &lt;main_bet_amount&gt; &lt;player|banker|tie&gt; [side_bet_type] [side_bet_amount]
 ///   – starts a round, debits the wallet and shows a "Deal Cards" button.
-/// • Deal Cards button – deals hands, evaluates main bet + side‑bet(s) & settles.
+/// • Deal Cards button – deals hands, evaluates the main bet + side‑bet(s) &amp; settles.
 /// • End Game button – terminates interaction.
 /// </summary>
 public sealed class BaccaratModule : InteractionModuleBase<SocketInteractionContext> {
@@ -43,7 +42,7 @@ public sealed class BaccaratModule : InteractionModuleBase<SocketInteractionCont
         EitherPair,
     }
 
-    record struct Card(int Rank, int Suit) {
+    readonly record struct Card(int Rank, int Suit) {
         public override string ToString() => $"{RankSymbols[Rank]}{SuitSymbols[Suit]}";
         public int BaccaratValue() => Rank >= 10 ? 0 : Rank; // 10, J, Q, K = 0
     }
@@ -56,9 +55,10 @@ public sealed class BaccaratModule : InteractionModuleBase<SocketInteractionCont
         [Summary( "bet_type", "Main bet: Player / Banker / Tie" )] BaccaratBetType betType,
         [Summary( "side_bet", "Side‑bet amount (defaults to 0)" )] float sideBetAmount = 0f,
         [Summary( "side_bet_type", "Optional side‑bet type" ),
-         Choice( "None", 0 ), Choice( "PlayerDragon", 1 ), 
+         Choice( "None", 0 ), Choice( "PlayerDragon", 1 ),
          Choice( "BankerDragon", 2 ), Choice( "PlayerPair", 3 ),
-         Choice( "BankerPair", 4 ), Choice( "EitherPair", 5 )] SideBetType sideBetType = SideBetType.None
+         Choice( "BankerPair", 4 ), Choice( "EitherPair", 5 )]
+        SideBetType sideBetType = SideBetType.None
     ) {
         float initialMainBet = mainBet;
         float initialSideBet = sideBetAmount;
@@ -77,7 +77,7 @@ public sealed class BaccaratModule : InteractionModuleBase<SocketInteractionCont
 
     /* ══════════════════════  Button Interactions  ══════════════════════ */
 
-    // ID pattern: baccarat_deal_main,betType,sideType,sideBet
+    // ID pattern: baccarat_deal_main, betType, sideType, sideBet
     [ComponentInteraction( "baccarat_deal_*,*,*,*" )]
     public async Task OnDealButtonAsync(string rawMainBet, string rawMainType, string rawSideType, string rawSideBet) {
         await DeferAsync( ephemeral: true );
@@ -136,7 +136,7 @@ public sealed class BaccaratModule : InteractionModuleBase<SocketInteractionCont
 
         float totalNeeded = mainBet + sideBet;
         if ( PlayersWallet.GetBalance( Context.User.Id ) < totalNeeded ) {
-            error = $"{Context.User.Mention} doesn’t have enough cash for that total bet (${totalNeeded:0.00}).";
+            error = $"{Context.User.Mention} does’t have enough cash for that total bet (${totalNeeded:0.00}).";
             return false;
         }
 
