@@ -24,7 +24,7 @@ namespace TCS.HoboBot.Modules.CasinoGames;
 public sealed class CrapsModule : InteractionModuleBase<SocketInteractionContext> {
     /* ─────────── Dice & Game Elements ─────────── */
 
-    static readonly string[] DiceEmojis = {
+    static readonly string[] DiceEmojis = [
         "❔", // Placeholder for 0, should not happen with 2 dice.
         "⚀", // 1
         "⚁", // 2
@@ -32,7 +32,7 @@ public sealed class CrapsModule : InteractionModuleBase<SocketInteractionContext
         "⚃", // 4
         "⚄", // 5
         "⚅", // 6
-    };
+    ];
 
     static readonly Random Rng = new();
     const float MAX_BET_CRAPS = 100f; // Max bet for Craps
@@ -272,7 +272,7 @@ public sealed class CrapsModule : InteractionModuleBase<SocketInteractionContext
 
 
     static int[] RollTwoDice() {
-        return new int[] { Rng.Next( 1, 7 ), Rng.Next( 1, 7 ) }; // 1-6
+        return [Rng.Next( 1, 7 ), Rng.Next( 1, 7 )]; // 1-6
     }
 
     static Embed BuildCrapsEmbed(SocketUser user, float currentBet, float originalBetDisplay, CrapsBetType betType, int point, string? diceRollMessage, string? outcomeMessage, bool gameConcluded) {
