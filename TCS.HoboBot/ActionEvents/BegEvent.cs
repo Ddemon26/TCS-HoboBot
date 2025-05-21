@@ -1,7 +1,7 @@
 ﻿using System.Security.Cryptography;
 namespace TCS.HoboBot.ActionEvents;
 
-public static class PrositutionEvents {
+public static class ProstitutionEvents {
     // Immutable record representing one prostitution event
     record ProstitutionEvent(
         int Weight, // relative likelihood (larger = more common)
@@ -248,11 +248,11 @@ public static class BegEvents {
             d => $"♻️ You cash in bottles and cans for **${d:0.00}** at the depot."
         ),
 
-        // 20) security guard shoos you — no cash
+        // 20) security guard chases you — no cash
         new(
             4,
             () => 0f,
-            _ => "🛑 A mall security guard shoos you away — nothing earned."
+            _ => "🛑 A mall security guard chases you away — nothing earned."
         ),
 
         // 21) odd job +$5
@@ -285,7 +285,7 @@ public static class BegEvents {
             _ => "📸 A tourist pays **$2.00** so you’ll pose for a quirky photo."
         ),
 
-        // 25) buy bus fare –$2.50
+        // 25) buy bus fare - $2.50
         new(
             3,
             () => -2.5f,
