@@ -1,0 +1,26 @@
+﻿# Visual Studio / .NET
+[Bb]in/
+[Oo]bj/
+*.user
+*.suo
+*.cache
+*.appx
+*.dbmdl
+*.log
+
+# Rider
+\.idea/
+*.sln\.iml
+\.idea_modules/
+out/
+
+# NuGet
+*.nupkg
+project\.lock\.json
+\.nuget/
+
+# ReSharper
+*.DotSettings\.user
+
+# Build results
+*.BuildInfo\.xml
