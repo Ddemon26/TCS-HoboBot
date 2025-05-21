@@ -50,7 +50,8 @@ dotnet user-secrets init
 dotnet user-secrets set "DISCORD_TOKEN" "<your‑bot‑token>"
 
 # 3. (Optional) point the bot at your guild during development
-#    Open `BotService.cs` and set the constant GUILD_ID to your server’s ID.
+dotnet user-secrets set "GUILD_ID" "<your‑test‑guild‑id>" # (optional)
+
 
 # 4. Build & run
 dotnet run --project TCS.HoboBot
@@ -98,24 +99,6 @@ Below is the command surface automatically extracted from the source – descrip
 | `clear`            | ClearModule         | Clear all bot messages and dismiss open interactions.                                          |
 
 > Tip: **Discord.Net 3.17.4** supports autocomplete, choices and modals – you can enrich existing commands by decorating parameters with the corresponding attributes.
-
----
-
-## Project Structure
-
-```
-TCS.HoboBot/
-├── ActionEvents/           # Self‑contained event tables (e.g. /beg outcomes)
-├── Data/                   # Persistent stores (wallet, properties) – JSON‑backed
-├── Modules/
-│   ├── CasinoGames/        # `/blackjack`, `/roulette`, ...
-│   ├── Moderation/         # `/clear`
-│   └── Util/               # `/ping`, `/roll`, ...
-├── BotService.cs           # Background service – login, command registration, dispatch
-├── MessageResponder.cs     # Listens to message‑based triggers if you ever enable them
-├── Program.cs              # Generic host bootstrapping, DI container
-└── TCS.HoboBot.csproj      # TargetFramework = net8.0, NuGet refs
-```
 
 ---
 
