@@ -52,7 +52,6 @@ public class PingModule : InteractionModuleBase<SocketInteractionContext> {
     }
 }
 
-
 public class RollModule : InteractionModuleBase<SocketInteractionContext> {
     static readonly Random Rng = new();
 
