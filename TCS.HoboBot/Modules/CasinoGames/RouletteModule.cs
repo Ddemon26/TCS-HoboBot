@@ -15,7 +15,7 @@ public enum RouletteBetType {
 
 public class RouletteBet {
     public RouletteBetType BetType { get; set; }
-    public float Amount { get; set; }
+    public float Amount { get; init; }
     public List<int> NumbersBetOn { get; set; } = [];
     public required string Description { get; set; }
 
@@ -500,7 +500,7 @@ public sealed class RouletteModule : InteractionModuleBase<SocketInteractionCont
     // Basic validation helpers (can be expanded)
     // For simplicity, these are not exhaustive table validation logic.
     bool IsValidSplit(int n1, int n2) {
-        // Very basic: checks if numbers are numerically adjacent or one is 0/00 and other is 1/2/3 or 0 and 00
+        // Very basic: checks if numbers are numerically adjacent or one is 0/00 and the other is 1/2/3 or 0 and 00
         if ( (n1 == 0 && n2 == -1) || (n1 == -1 && n2 == 0) ) {
             return true; // 0-00 split
         }
