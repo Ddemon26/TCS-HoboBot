@@ -5,40 +5,14 @@ using Discord.Interactions;
 using TCS.HoboBot.Data;
 namespace TCS.HoboBot.Modules;
 
-public class CollectPropertyModule : InteractionModuleBase<SocketInteractionContext> {
-    [SlashCommand( "property_collect", "Collect money from your properties" )]
-    public async Task CollectPropertyAsync() {
-        if ( !PlayersProperties.OwnedProperties.TryGetValue( Context.User.Id, out Property[]? owned ) || owned.Length == 0 ) {
-            await RespondAsync( "You don't own any properties.", ephemeral: true );
-            return;
-        }
-
-        var now = DateTimeOffset.UtcNow;
-        if ( PlayersProperties.NextCollect.TryGetValue( Context.User.Id, out var nextCollect ) && now < nextCollect ) {
-            await RespondAsync( $"⏳ You need to wait **{nextCollect:mm\\:ss}** before collecting again.", ephemeral: true );
-            return;
-        }
-
-        // Collect all property amounts
-        float total = owned.Sum( p => p.CollectAmount );
-        PlayersWallet.AddToBalance( Context.User.Id, total );
-        PlayersProperties.NextCollect[Context.User.Id] = now + PlayersProperties.CollectCooldown;
-
-        await RespondAsync(
-            $"✅ {Context.User.Mention} Collected ${total:N0} from all his properties!",
-            ephemeral: false
-        );
-    }
-}
-
-public record struct Property {
+public record struct MonopolyProperty {
     public string Name { get; init; }
     public float Price { get; init; }
     public float CollectAmount { get; init; }
 
     const float COLLECT_BUFFER = 200f;
 
-    public Property(string name, float price, float? collectAmount = null) {
+    public MonopolyProperty(string name, float price, float? collectAmount = null) {
         Name = name;
         Price = price;
         CollectAmount = collectAmount ?? price / COLLECT_BUFFER;
@@ -46,11 +20,14 @@ public record struct Property {
 }
 
 public static class PlayersProperties {
-    public static readonly ConcurrentDictionary<ulong, Property[]> OwnedProperties = new();
+    //we should only store the properties that the user owns from the array order, then load them and match the array order.
+    // so we can change the values of the properties in the array and not cause issues
+    public static readonly ConcurrentDictionary<ulong, int[]> OwnedProperties = new(); // add this
+    //public static readonly ConcurrentDictionary<ulong, MonopolyProperty[]> OwnedProperties = new(); // remove this
     public static readonly ConcurrentDictionary<ulong, DateTimeOffset> NextCollect = new();
     public static readonly TimeSpan CollectCooldown = TimeSpan.FromHours( 1 );
 
-    static Property[] s_allProperties = [
+    static MonopolyProperty[] s_allProperties = [
         new() { Name = "Cardboard Box", Price = 50, CollectAmount = 5 },
         new() { Name = "Hobo Tent", Price = 250, CollectAmount = 20 },
         new() { Name = "The Local Dumpster", Price = 1000, CollectAmount = 50 },
@@ -78,15 +55,19 @@ public static class PlayersProperties {
         new("Hobo Mansion", 1_000_000),
     ];
 
+    public static Dictionary<int, MonopolyProperty> Properties { get; } = s_allProperties
+        .Select( (property, index) => new { Index = index, Property = property } )
+        .ToDictionary( x => x.Index, x => x.Property );
+
     static readonly string FilePath = "OwnedProperties.json";
 
     //get all properties
-    public static Property[] GetAllProperties() {
+    public static MonopolyProperty[] GetAllProperties() {
         if ( s_allProperties.Length == 0 ) {
             // Load properties from a file
             if ( File.Exists( FilePath ) ) {
                 string json = File.ReadAllText( FilePath );
-                Property[]? loaded = Deserialize<Property[]>( json );
+                MonopolyProperty[]? loaded = Deserialize<MonopolyProperty[]>( json );
                 if ( loaded != null ) {
                     s_allProperties = loaded;
                 }
@@ -95,25 +76,36 @@ public static class PlayersProperties {
 
         return s_allProperties;
     }
+    
+    public static MonopolyProperty[] GetOwnedProperties(ulong userId)
+    {
+        if (!OwnedProperties.TryGetValue(userId, out int[]? idx))
+            return Array.Empty<MonopolyProperty>();
 
-    //save properties to a file
-    public static async Task SaveAsync() {
-        string json = Serialize( OwnedProperties );
-        await File.WriteAllTextAsync( FilePath, json );
+        return idx.Select(i => Properties[i]).ToArray();
     }
 
-    //load properties from a file
-    public static async Task LoadAsync() {
-        if ( File.Exists( FilePath ) ) {
-            string json = await File.ReadAllTextAsync( FilePath );
-            ConcurrentDictionary<ulong, Property[]>? loaded = Deserialize<ConcurrentDictionary<ulong, Property[]>>( json );
-            if ( loaded != null ) {
-                foreach (KeyValuePair<ulong, Property[]> kv in loaded) {
-                    OwnedProperties[kv.Key] = kv.Value;
-                }
-            }
-        }
+
+// 2-A  ─ SAVE  (no other changes)
+    public static async Task SaveAsync()
+    {
+        string json = Serialize(OwnedProperties);          // <-- now Dictionary<ulong,int[]>
+        await File.WriteAllTextAsync(FilePath, json);
     }
+
+// 2-B  ─ LOAD
+    public static async Task LoadAsync()
+    {
+        if (!File.Exists(FilePath)) return;
+
+        string json = await File.ReadAllTextAsync(FilePath);
+        ConcurrentDictionary<ulong, int[]>? loaded = Deserialize<ConcurrentDictionary<ulong, int[]>>(json);
+        if (loaded is null) return;
+
+        foreach (KeyValuePair<ulong, int[]> kv in loaded)
+            OwnedProperties[kv.Key] = kv.Value;
+    }
+
 
 
     static readonly JsonSerializerOptions WriteOptions = new() {
@@ -137,7 +129,7 @@ public class BuyPropertyModule : InteractionModuleBase<SocketInteractionContext>
     // ---------- /buy_property ----------
     [SlashCommand( "property_buy", "Buy a property" )]
     public async Task BuyPropertyAsync() {
-        Property[] props = PlayersProperties.GetAllProperties();
+        MonopolyProperty[] props = PlayersProperties.GetAllProperties();
         if ( props.Length == 0 ) {
             await RespondAsync( "No properties are currently available.", ephemeral: true );
             return;
@@ -150,7 +142,7 @@ public class BuyPropertyModule : InteractionModuleBase<SocketInteractionContext>
                          (
                              $"{p.Name} – ${p.Price:N0}",
                              i.ToString(),
-                             $"Cost: ${p.Price:N0} \nCollect: ${p.CollectAmount:N0} per hour"
+                             $"Cost: ${p.Price:N0}    Collect: ${p.CollectAmount:N0}"
                          )
             )
             .ToList();
@@ -205,7 +197,7 @@ public class BuyPropertyModule : InteractionModuleBase<SocketInteractionContext>
             return;
         }
 
-        Property[] props = PlayersProperties.GetAllProperties();
+        MonopolyProperty[] props = PlayersProperties.GetAllProperties();
         if ( selectedIndex < 0 || selectedIndex >= props.Length ) {
             await RespondAsync( "Invalid property.", ephemeral: true );
             return;
@@ -214,9 +206,13 @@ public class BuyPropertyModule : InteractionModuleBase<SocketInteractionContext>
         var chosen = props[selectedIndex];
 
         // Duplicate & funds checks (same logic you already had) …
-        Property[] owned = PlayersProperties.OwnedProperties.GetValueOrDefault( Context.User.Id, [] );
-        if ( owned.Any( p => p.Name == chosen.Name ) ) {
-            await RespondAsync( $"You already own **{chosen.Name}**.", ephemeral: true );
+        // 3-A  ─ inside HandleBuyAsync ­-- duplicate-check
+        int[] owned = PlayersProperties.OwnedProperties
+            .GetValueOrDefault(Context.User.Id, Array.Empty<int>());
+
+        if (owned.Contains(selectedIndex))
+        {
+            await RespondAsync($"You already own **{chosen.Name}**.", ephemeral: true);
             return;
         }
 
@@ -231,10 +227,11 @@ public class BuyPropertyModule : InteractionModuleBase<SocketInteractionContext>
 
         // Perform purchase
         PlayersWallet.SubtractFromBalance( Context.User.Id, chosen.Price );
+        // 3-B  ─ add the new index
         PlayersProperties.OwnedProperties.AddOrUpdate(
             Context.User.Id,
-            _ => [chosen],
-            (_, old) => old.Append( chosen ).ToArray()
+            _  => [selectedIndex],
+            (_, old) => old.Append(selectedIndex).ToArray()
         );
         _ = PlayersWallet.SaveAsync();
         _ = PlayersProperties.SaveAsync();
