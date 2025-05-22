@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+﻿/*using System.Globalization;
 using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
@@ -25,7 +25,7 @@ namespace TCS.HoboBot.Modules.CasinoGames;
 /// </list>
 /// </remarks>
 public sealed class SlotMachineModule : InteractionModuleBase<SocketInteractionContext> {
-    /* ─────────── symbols / wheels ─────────── */
+    /* ─────────── symbols / wheels ─────────── #1#
 
     enum Icon { Cherry, Lemon, Orange, Plum, Bell, Hotdog, Bar, Seven }
 
@@ -55,7 +55,7 @@ public sealed class SlotMachineModule : InteractionModuleBase<SocketInteractionC
      *  two 7 s             →   5×
      *  any two of a kind  →   2×
      *  otherwise          →   0×
-     */
+     #1#
     static decimal Payout(Icon[] r) {
         bool allEqual = r[0] == r[1] && r[1] == r[2];
         bool twoEqual = r.GroupBy( i => i ).Any( g => g.Count() == 2 );
@@ -72,7 +72,7 @@ public sealed class SlotMachineModule : InteractionModuleBase<SocketInteractionC
         };
     }
 
-    /* ─────────── slash command ─────────── */
+    /* ─────────── slash command ─────────── #1#
 
     [SlashCommand( "slots", "Pull a three‑reel slot machine." )]
     public async Task SlotsAsync(float bet) {
@@ -86,7 +86,7 @@ public sealed class SlotMachineModule : InteractionModuleBase<SocketInteractionC
         await SpinAndRespondAsync( bet, isFollowUp: false );
     }
 
-    /* ─────────── button interaction ─────────── */
+    /* ─────────── button interaction ─────────── #1#
 
     [ComponentInteraction( "slots_again_*" )]
     public async Task OnSpinAgain(string rawBet) {
@@ -134,7 +134,7 @@ public sealed class SlotMachineModule : InteractionModuleBase<SocketInteractionC
         );
     }
 
-    /* ─────────── helpers ─────────── */
+    /* ─────────── helpers ─────────── #1#
 
 // Update ValidateBet to pass the bet by reference.
     bool ValidateBet(ref float bet, out string? error) {
@@ -218,4 +218,4 @@ public sealed class SlotMachineModule : InteractionModuleBase<SocketInteractionC
         var msg = $"{Context.User.Mention} wins **${bet * (float)(mult - 1):0.00}** on the slots!";
         await Context.Channel.SendMessageAsync( msg );
     }
-}
+}*/

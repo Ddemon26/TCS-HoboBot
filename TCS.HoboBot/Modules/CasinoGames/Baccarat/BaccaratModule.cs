@@ -22,8 +22,8 @@ public sealed class BaccaratModule : InteractionModuleBase<SocketInteractionCont
     ]; // Index 0 unused.
 
     static readonly Random Rng = new();
-    const float MAX_MAIN_BET = 200f;
-    const float MAX_SIDE_BET = 50f;
+    const float MAX_MAIN_BET = 10000f;
+    const float MAX_SIDE_BET = 100f;
 
     /* ─────────── Bet types ─────────── */
 
@@ -63,8 +63,17 @@ public sealed class BaccaratModule : InteractionModuleBase<SocketInteractionCont
         float initialMainBet = mainBet;
         float initialSideBet = sideBetAmount;
 
+        if ( sideBetAmount > 0f && sideBetType == SideBetType.None ) {
+            await RespondAsync(
+                "🚫 You’ve entered a side-bet amount, but you did’t choose a side-bet type. " +
+                "Please select one of PlayerDragon, BankerDragon, PlayerPair, BankerPair or EitherPair.",
+                ephemeral: true
+            );
+            return;
+        }
+
         if ( !ValidateBets( ref mainBet, ref sideBetAmount, out string? error ) ) {
-            await RespondAsync( error!, ephemeral: true );
+            await RespondAsync( error, ephemeral: true );
             return;
         }
 
@@ -305,7 +314,8 @@ public sealed class BaccaratModule : InteractionModuleBase<SocketInteractionCont
             4 => p is >= 2 and <= 7,
             5 => p is >= 4 and <= 7,
             6 => p is 6 or 7,
-            _ => false,
+            //_ => false,
+            _ => throw new ArgumentOutOfRangeException( nameof(bankerTotal), bankerTotal, null )
         };
     }
 

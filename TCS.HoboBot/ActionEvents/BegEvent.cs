@@ -23,6 +23,8 @@ public static class ProstitutionEvents {
             () => -20f,
             d => $"Trouble strikes as the law catches up with you – you lose **${MathF.Abs( d ):0.00}** in fines."
         ),
+
+        // ... (other events omitted for brevity)
     ];
 
     static readonly int TotalWeight = ComputeTotalWeight();
@@ -60,14 +62,14 @@ public static class WorkEvents {
     static readonly WorkEvent[] Events = [
         // 1) 40% – spare change from a passer‑by
         new(
-            9,
+            19,
             () => RandomNumberGenerator.GetInt32( 10, 100 ), // $10.01–100.00
             d => $"A man in a van picks you up like the mexican you are. He gives you **${d:0.00}** for a few hours of work."
         ),
 
         // 2) 20% – ignored
         new(
-            10,
+            1,
             () => 0f,
             _ => "Nobody seems to want to hire a bum like you. **No cash this time.**"
         ),

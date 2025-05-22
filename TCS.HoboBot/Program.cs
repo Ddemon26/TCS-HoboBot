@@ -4,15 +4,24 @@ using Discord.Interactions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using TCS.HoboBot;
+using TCS.HoboBot.Data;
+using TCS.HoboBot.Modules;
+using TCS.HoboBot.Modules.Moderation;
 
 var host = Host.CreateDefaultBuilder( args )
     .ConfigureServices( (_, services) => {
+            // Configure the shutdown timeout for the host
+            services.Configure<HostOptions>(opt => 
+                                                opt.ShutdownTimeout = TimeSpan.FromSeconds(30));
+
+            
             // DiscordSocketClient config
             var discordSocketConfig = new DiscordSocketConfig {
                 GatewayIntents = GatewayIntents.Guilds |
                                  GatewayIntents.GuildMessages |
                                  GatewayIntents.MessageContent |
-                                 GatewayIntents.GuildMessages,
+                                 GatewayIntents.GuildIntegrations |
+                                 GatewayIntents.GuildMembers
                 // | GatewayIntents.All,
             };
             services.AddSingleton( discordSocketConfig );
@@ -34,7 +43,10 @@ var host = Host.CreateDefaultBuilder( args )
 
             services.AddHostedService<BotService>();
             services.AddHostedService<MessageResponder>();
+            services.AddHostedService<RoleService>();
         }
-    ).Build();
+    )
+    .UseConsoleLifetime()
+    .Build();
 
 await host.RunAsync();

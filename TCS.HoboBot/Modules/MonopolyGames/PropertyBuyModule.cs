@@ -1,5 +1,4 @@
 ﻿using System.Collections.Concurrent;
-using System.Text.Json;
 using Discord;
 using Discord.Interactions;
 using TCS.HoboBot.Data;
@@ -19,108 +18,7 @@ public record struct MonopolyProperty {
     }
 }
 
-public static class PlayersProperties {
-    //we should only store the properties that the user owns from the array order, then load them and match the array order.
-    // so we can change the values of the properties in the array and not cause issues
-    public static readonly ConcurrentDictionary<ulong, int[]> OwnedProperties = new(); // add this
-    //public static readonly ConcurrentDictionary<ulong, MonopolyProperty[]> OwnedProperties = new(); // remove this
-    public static readonly ConcurrentDictionary<ulong, DateTimeOffset> NextCollect = new();
-    public static readonly TimeSpan CollectCooldown = TimeSpan.FromHours( 1 );
-
-    static MonopolyProperty[] s_allProperties = [
-        new() { Name = "Cardboard Box", Price = 50, CollectAmount = 5 },
-        new() { Name = "Hobo Tent", Price = 250, CollectAmount = 20 },
-        new() { Name = "The Local Dumpster", Price = 1000, CollectAmount = 50 },
-        new("Shabby Shack", 25_000),
-        new("Leaky Cabin", 29200),
-        new("Rusty Trailer", 34000),
-        new("Derelict Bunker", 39600),
-        new("Seaside Cottage", 46200),
-        new("Suburban House", 54000),
-        new("Urban Duplex", 62800),
-        new("Lakeside Villa", 73200),
-        new("Countryside Farm", 85600),
-        new("Downtown Loft", 99600),
-        new("Boutique Shop", 116400),
-        new("Corner Café", 135600),
-        new("Small Warehouse", 158000),
-        new("Roadside Motel", 184400),
-        new("Office Suite", 215000),
-        new("Medical Clinic", 250800),
-        new("Strip Mall", 292400),
-        new("Mid-Rise Apartments", 341000),
-        new("Four-Star Hotel", 397600),
-        new("Casino Floor", 463600),
-        new("Solar Farm", 540800),
-        new("Hobo Mansion", 1_000_000),
-    ];
-
-    public static Dictionary<int, MonopolyProperty> Properties { get; } = s_allProperties
-        .Select( (property, index) => new { Index = index, Property = property } )
-        .ToDictionary( x => x.Index, x => x.Property );
-
-    static readonly string FilePath = "OwnedProperties.json";
-
-    //get all properties
-    public static MonopolyProperty[] GetAllProperties() {
-        if ( s_allProperties.Length == 0 ) {
-            // Load properties from a file
-            if ( File.Exists( FilePath ) ) {
-                string json = File.ReadAllText( FilePath );
-                MonopolyProperty[]? loaded = Deserialize<MonopolyProperty[]>( json );
-                if ( loaded != null ) {
-                    s_allProperties = loaded;
-                }
-            }
-        }
-
-        return s_allProperties;
-    }
-    
-    public static MonopolyProperty[] GetOwnedProperties(ulong userId)
-    {
-        if (!OwnedProperties.TryGetValue(userId, out int[]? idx))
-            return Array.Empty<MonopolyProperty>();
-
-        return idx.Select(i => Properties[i]).ToArray();
-    }
-
-
-// 2-A  ─ SAVE  (no other changes)
-    public static async Task SaveAsync()
-    {
-        string json = Serialize(OwnedProperties);          // <-- now Dictionary<ulong,int[]>
-        await File.WriteAllTextAsync(FilePath, json);
-    }
-
-// 2-B  ─ LOAD
-    public static async Task LoadAsync()
-    {
-        if (!File.Exists(FilePath)) return;
-
-        string json = await File.ReadAllTextAsync(FilePath);
-        ConcurrentDictionary<ulong, int[]>? loaded = Deserialize<ConcurrentDictionary<ulong, int[]>>(json);
-        if (loaded is null) return;
-
-        foreach (KeyValuePair<ulong, int[]> kv in loaded)
-            OwnedProperties[kv.Key] = kv.Value;
-    }
-
-
-
-    static readonly JsonSerializerOptions WriteOptions = new() {
-        WriteIndented = true,
-    };
-
-    static readonly JsonSerializerOptions? ReadOptions = new() {
-        AllowTrailingCommas = true,
-    };
-
-    static string Serialize<T>(T value) => JsonSerializer.Serialize( value, WriteOptions );
-    static T? Deserialize<T>(string json) => JsonSerializer.Deserialize<T>( json, ReadOptions );
-}
-
-public class BuyPropertyModule : InteractionModuleBase<SocketInteractionContext> {
+public class PropertyBuyModule : InteractionModuleBase<SocketInteractionContext> {
     // ---------- constants & in-memory state ----------
     const string CUSTOM_ID_PREFIX = "buy_prop";
     // Keeps track of the property selected in the menu until the user clicks the Buy button
@@ -206,13 +104,12 @@ public class BuyPropertyModule : InteractionModuleBase<SocketInteractionContext>
         var chosen = props[selectedIndex];
 
         // Duplicate & funds checks (same logic you already had) …
-        // 3-A  ─ inside HandleBuyAsync ­-- duplicate-check
+        // 3-A  ─ inside HandleBuyAsync -- duplicate-check
         int[] owned = PlayersProperties.OwnedProperties
-            .GetValueOrDefault(Context.User.Id, Array.Empty<int>());
+            .GetValueOrDefault( Context.User.Id, [] );
 
-        if (owned.Contains(selectedIndex))
-        {
-            await RespondAsync($"You already own **{chosen.Name}**.", ephemeral: true);
+        if ( owned.Contains( selectedIndex ) ) {
+            await RespondAsync( $"You already own **{chosen.Name}**.", ephemeral: true );
             return;
         }
 
@@ -230,31 +127,31 @@ public class BuyPropertyModule : InteractionModuleBase<SocketInteractionContext>
         // 3-B  ─ add the new index
         PlayersProperties.OwnedProperties.AddOrUpdate(
             Context.User.Id,
-            _  => [selectedIndex],
-            (_, old) => old.Append(selectedIndex).ToArray()
+            _ => [selectedIndex],
+            (_, old) => old.Append( selectedIndex ).ToArray()
         );
         _ = PlayersWallet.SaveAsync();
         _ = PlayersProperties.SaveAsync();
 
         //await DeferAsync( ephemeral: true );
         // Public confirmation (replace RespondAsync + new message)
-        await Context.Interaction.DeferAsync();
+        // await Context.Interaction.DeferAsync();
 
         // Build your embed
-        var embed = new EmbedBuilder()
-            .WithTitle( "Property Purchase – Transaction Ended" )
-            .WithDescription( $"{Context.User.Mention} has bought **{chosen.Name}** for ${chosen.Price:N0}!" )
-            .Build();
+        // var embed = new EmbedBuilder()
+        //     .WithTitle( "Property Purchase – Transaction Ended" )
+        //     .WithDescription( $"{Context.User.Mention} has bought **{chosen.Name}** for ${chosen.Price:N0}!" )
+        //     .Build();
 
-        // Update the original message, clearing all components
-        await Context.Interaction.ModifyOriginalResponseAsync( messageProperties => {
-                messageProperties.Embed = embed;
-                messageProperties.Components = new ComponentBuilder().Build();
-            }
-        );
+        // // Update the original message, clearing all components
+        // await Context.Interaction.ModifyOriginalResponseAsync( messageProperties => {
+        //         messageProperties.Embed = embed;
+        //         messageProperties.Components = new ComponentBuilder().Build();
+        //     }
+        // );
 
         // send a public follow-up in chat
-        await FollowupAsync(
+        await RespondAsync(
             $"✅ {Context.User.Mention} has bought **{chosen.Name}** for ${chosen.Price:N0}!",
             ephemeral: false
         );

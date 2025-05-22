@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+﻿/*using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using Discord;
 using Discord.Interactions;
@@ -20,14 +20,14 @@ public class BlackJackModule : InteractionModuleBase<SocketInteractionContext> {
         public Rank Rank { get; }
         public Suit Suit { get; }
 
-        /* points for blackjack math */
+        /* points for blackjack math #1#
         public int Points => Rank switch {
             Rank.Jack or Rank.Queen or Rank.King => 10,
             Rank.Ace => 11,
             _ => (int)Rank,
         };
 
-        /* glyph lookup ─ ♣ ♦ ♥ ♠ */
+        /* glyph lookup ─ ♣ ♦ ♥ ♠ #1#
         static readonly Dictionary<Suit, string> SuitGlyph = new() {
             [Suit.Clubs] = "♣",
             [Suit.Diamonds] = "♦",
@@ -35,7 +35,7 @@ public class BlackJackModule : InteractionModuleBase<SocketInteractionContext> {
             [Suit.Spades] = "♠",
         };
 
-        /* text for the rank */
+        /* text for the rank #1#
         static string RankText(Rank r) => r switch {
             Rank.Ace => "A",
             Rank.King => "K",
@@ -191,7 +191,7 @@ public class BlackJackModule : InteractionModuleBase<SocketInteractionContext> {
         public enum Outcome { PlayerWin, DealerWin, Push }
     }
 
-    /* ───────────  runtime state  ─────────── */
+    /* ───────────  runtime state  ─────────── #1#
 
     static readonly Random Rng = new();
     static readonly Shoe SharedShoe = new(6, Rng); // 6-deck shoe
@@ -207,7 +207,7 @@ public class BlackJackModule : InteractionModuleBase<SocketInteractionContext> {
         }
     }
 
-    /* ───────────  slash command  ─────────── */
+    /* ───────────  slash command  ─────────── #1#
 
     [SlashCommand( "blackjack", "Play an interactive blackjack hand vs the house." )]
     public async Task BlackjackAsync(float bet) {
@@ -244,7 +244,7 @@ public class BlackJackModule : InteractionModuleBase<SocketInteractionContext> {
         await UpdateGameMessage( session );
     }
 
-    /* ───────────  buttons  ─────────── */
+    /* ───────────  buttons  ─────────── #1#
 
     [ComponentInteraction( "bj_hit_*" )]
     public async Task OnHit(string userIdRaw) {
@@ -270,7 +270,7 @@ public class BlackJackModule : InteractionModuleBase<SocketInteractionContext> {
         await UpdateGameMessage( session );
     }
 
-    /* ───────────  helpers  ─────────── */
+    /* ───────────  helpers  ─────────── #1#
 
     bool ValidateUser(string raw, [NotNullWhen( true )] out GameSession? session) {
         session = null;
@@ -327,9 +327,9 @@ public class BlackJackModule : InteractionModuleBase<SocketInteractionContext> {
         return new EmbedBuilder()
             .WithTitle( $"Blackjack – ${ses.Bet:0.00} bet" )
             .WithDescription( $"{user.Mention} vs House\n\u200b" )
-            .AddField( "Your hand", g.Player.ToString(), inline: false )
             .AddField( "Dealer", dealerText, inline: false )
+            .AddField( "Your hand", g.Player.ToString(), inline: false )
             .WithFooter( showDealerHole ? "Round finished" : "Your move…" )
             .Build();
     }
-}
+}*/

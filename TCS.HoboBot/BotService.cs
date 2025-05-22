@@ -6,6 +6,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using TCS.HoboBot.Data;
 using TCS.HoboBot.Modules;
+using TCS.HoboBot.Modules.DrugDealer;
 
 namespace TCS.HoboBot;
 
@@ -34,23 +35,23 @@ public class BotService : IHostedService {
 
         // load modules
         await m_interactions.AddModulesAsync( Assembly.GetExecutingAssembly(), m_services );
-        
+
         // ---- token handling -------------------------------------------------
         var config = new ConfigurationBuilder()
             .AddUserSecrets<Program>()
             .Build();
 
-        bool tryParse = ulong.TryParse(config["GUILD_ID"], out ulong guildId);
+        bool tryParse = ulong.TryParse( config["GUILD_ID"], out ulong guildId );
 
         // register slash commands when the gateway is ready
         m_client.Ready += async () => {
             Console.WriteLine( $"GUILD_ID: {guildId}" );
-        
+
             if ( !tryParse ) {
                 Console.WriteLine( "Error: GUILD_ID is not a valid ulong." );
                 return;
             }
-            
+
             // Instant test-guild registration
             await m_interactions.RegisterCommandsToGuildAsync( guildId, deleteMissing: true );
 
@@ -66,9 +67,10 @@ public class BotService : IHostedService {
             await m_interactions.ExecuteCommandAsync( ctx, m_services );
         };
 
-        await PlayersWallet.LoadAsync();
-        await PlayersProperties.LoadAsync();
-        
+        // await PlayersWallet.LoadAsync();
+        // await PlayersProperties.LoadAsync();
+        await LoadDataAsync();
+
 
         string? token = config["DISCORD_TOKEN"];
         if ( string.IsNullOrEmpty( token ) ) {
@@ -76,16 +78,39 @@ public class BotService : IHostedService {
             return;
         }
 
+        // AppDomain.CurrentDomain.ProcessExit += (_, _) => {
+        //     Console.WriteLine("Process exiting – saving data");
+        //     SaveDataAsync().GetAwaiter().GetResult();
+        // };
+
+        AppDomain.CurrentDomain.ProcessExit += _onProcessExit;
+
         await m_client.LoginAsync( TokenType.Bot, token );
         await m_client.StartAsync();
     }
 
     public async Task StopAsync(CancellationToken ct) {
-        await PlayersWallet.SaveAsync();
-        await PlayersProperties.SaveAsync();
-
         await m_client.LogoutAsync();
         await m_client.StopAsync();
+    }
+
+    static readonly EventHandler _onProcessExit = (_, _) => {
+        Console.WriteLine( "Process exiting – saving data" );
+        SaveDataAsync().GetAwaiter().GetResult();
+        // PlayersWallet.SaveAsync().GetAwaiter().GetResult();
+        // PlayersProperties.SaveAsync().GetAwaiter().GetResult();
+    };
+
+    static async Task LoadDataAsync() {
+        await PlayersWallet.LoadAsync();
+        await PlayersProperties.LoadAsync();
+        await PlayersStashes.LoadAsync();
+    }
+
+    static async Task SaveDataAsync() {
+        await PlayersWallet.SaveAsync();
+        await PlayersProperties.SaveAsync();
+        await PlayersStashes.SaveAsync();
     }
 
     static Task LogAsync(LogMessage msg) {

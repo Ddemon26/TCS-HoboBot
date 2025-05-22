@@ -27,10 +27,10 @@ public class PropertyCheckModule : InteractionModuleBase<SocketInteractionContex
         if ( PlayersProperties.NextCollect.TryGetValue( target.Id, out var nextTime ) ) {
             var remaining = nextTime - now;
             string format = remaining.TotalHours >= 1 ? @"hh\:mm\:ss" : @"mm\:ss";
-            cooldownMessage = $"⏳ You can collect money in **{remaining.ToString( format )}**.";
+            cooldownMessage = $"⏳ {target.GlobalName} can collect money in **{remaining.ToString( format )}**.";
         }
         else {
-            cooldownMessage = "⏳ You can collect money **NOW**.";
+            cooldownMessage = $"⏳ {target.GlobalName} can collect money **NOW**.";
         }
 
         await RespondAsync(

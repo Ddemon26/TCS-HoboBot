@@ -33,7 +33,9 @@ namespace TCS.HoboBot {
 
         // ──────────────────────────────────────────────────────────────────────
         async Task OnMessageAsync(SocketMessage s) {
-            if ( s.Author.IsBot || s is not SocketUserMessage msg ) return;
+            if ( s.Author.IsBot || s is not SocketUserMessage msg ) {
+                return;
+            }
 
             var key = (msg.Author.Id, msg.Channel.Id);
             var tracker = m_trackers.GetOrAdd( key, _ => new MessageTracker() );
@@ -90,8 +92,13 @@ namespace TCS.HoboBot {
         ///     Requires the bot to have <c>ManageChannels</c> permission in that channel.
         /// </summary>
         static async Task ApplyChannelTimeoutAsync(SocketUserMessage msg) {
-            if ( msg.Channel is not SocketTextChannel textChannel ) return; // DM or group: ignore
-            if ( msg.Author is not SocketGuildUser gUser ) return; // Should always be true in guild
+            if ( msg.Channel is not SocketTextChannel textChannel ) {
+                return; // DM or group: ignore
+            }
+
+            if ( msg.Author is not SocketGuildUser gUser ) {
+                return; // Should always be true in guild
+            }
 
             // Create (or update) an overwrite that denies SendMessages
             var denySend = new OverwritePermissions( sendMessages: PermValue.Deny );
@@ -137,7 +144,9 @@ namespace TCS.HoboBot {
                 Count = 1;
             }
             public void ExpireIfNeeded(TimeSpan window) {
-                if ( DateTimeOffset.UtcNow - FirstSeen > window ) Reset( LastContent );
+                if ( DateTimeOffset.UtcNow - FirstSeen > window ) {
+                    Reset( LastContent );
+                }
             }
         }
     }
