@@ -37,16 +37,16 @@ public class SellStashModule : InteractionModuleBase<SocketInteractionContext> {
 
     [SlashCommand( "sell_stash", "Sell your stash" )]
     public async Task SellStashAsync() {
-        var stash = PlayersStashes.GetStash( Context.User.Id );
+        var stash = PlayersStashes.GetStash( Context.Guild.Id, Context.User.Id );
         if ( !stash.HasAnyDrugs() ) {
             await RespondAsync( "You have no drugs to sell." );
             return;
         }
 
         // Calculate total value of stash
-        float totalValue = PlayersStashes.GetTotalSellAmountFromUser( Context.User.Id );
+        float totalValue = PlayersStashes.GetTotalSellAmountFromUser( Context.Guild.Id, Context.User.Id );
         //float totalValue = stash.TotalValue;
-        PlayersWallet.AddToBalance( Context.User.Id, totalValue );
+        PlayersWallet.AddToBalance( Context.Guild.Id, Context.User.Id , totalValue );
 
         stash.RemoveAllAmounts();
         stash.TotalCashAcquiredFromSelling += totalValue;
@@ -61,7 +61,7 @@ public class SellStashModule : InteractionModuleBase<SocketInteractionContext> {
         await HoboRolesHandler.AddRolesAsync( user, newRole );
 
         // save stash
-        PlayersStashes.Stash[Context.User.Id] = stash;
+        PlayersStashes.SaveStash(Context.Guild.Id, Context.User.Id, stash)/* = stash*/;
 
         // respond with a sale result
         await RespondAsync( $"You sold your stash for ${totalValue:N0}!" );
