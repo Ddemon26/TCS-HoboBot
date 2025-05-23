@@ -26,7 +26,7 @@ public class RobUserModule : InteractionModuleBase<SocketInteractionContext> {
             return;
         }
 
-        float targetBalance = PlayersWallet.GetBalance( target.Id );
+        float targetBalance = PlayersWallet.GetBalance( Context.Guild.Id, Context.User.Id );
         if ( targetBalance <= 0 ) {
             await RespondAsync( $"{target.Mention} has no cash to steal!" );
             return;
@@ -40,8 +40,8 @@ public class RobUserModule : InteractionModuleBase<SocketInteractionContext> {
             float maxSteal = targetBalance * 0.30f;
             float amount = minSteal + (float)Rng.NextDouble() * (maxSteal - minSteal);
 
-            PlayersWallet.SubtractFromBalance( target.Id, amount );
-            PlayersWallet.AddToBalance( Context.User.Id, amount );
+            PlayersWallet.SubtractFromBalance( Context.Guild.Id, Context.User.Id, amount );
+            PlayersWallet.AddToBalance( Context.Guild.Id, Context.User.Id, amount );
 
             await RespondAsync(
                 $"{Context.User.Mention} successfully robbed {target.Mention} for **${amount:0.00}**!"
