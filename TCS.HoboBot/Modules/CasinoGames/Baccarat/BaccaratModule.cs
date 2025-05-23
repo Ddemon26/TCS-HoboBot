@@ -79,7 +79,7 @@ public sealed class BaccaratModule : InteractionModuleBase<SocketInteractionCont
 
         // Debit wallet up‑front
         float totalDebit = mainBet + sideBetAmount;
-        PlayersWallet.SubtractFromBalance( Context.User.Id, totalDebit );
+        PlayersWallet.SubtractFromBalance( Context.Guild.Id, Context.User.Id, totalDebit );
 
         await RespondWithDealButtonAsync( mainBet, betType, sideBetType, sideBetAmount, initialMainBet, initialSideBet, isFollowUp: false );
     }
@@ -144,7 +144,7 @@ public sealed class BaccaratModule : InteractionModuleBase<SocketInteractionCont
         }
 
         float totalNeeded = mainBet + sideBet;
-        if ( PlayersWallet.GetBalance( Context.User.Id ) < totalNeeded ) {
+        if ( PlayersWallet.GetBalance( Context.Guild.Id, Context.User.Id ) < totalNeeded ) {
             error = $"{Context.User.Mention} does’t have enough cash for that total bet (${totalNeeded:0.00}).";
             return false;
         }
@@ -269,14 +269,14 @@ public sealed class BaccaratModule : InteractionModuleBase<SocketInteractionCont
 
         /* ─────────── Wallet Settlement ─────────── */
         if ( mainPayoutMultiplier > 0m ) {
-            PlayersWallet.AddToBalance( Context.User.Id, mainBet * (float)mainPayoutMultiplier );
+            PlayersWallet.AddToBalance( Context.Guild.Id, Context.User.Id, mainBet * (float)mainPayoutMultiplier );
         }
 
         if ( sidePayoutMultiplier > 0m ) {
-            PlayersWallet.AddToBalance( Context.User.Id, sideBetAmount * (float)sidePayoutMultiplier );
+            PlayersWallet.AddToBalance( Context.Guild.Id, Context.User.Id, sideBetAmount * (float)sidePayoutMultiplier );
         }
         else if ( sidePayoutMultiplier == 1m ) {
-            PlayersWallet.AddToBalance( Context.User.Id, sideBetAmount ); // push returned
+            PlayersWallet.AddToBalance( Context.Guild.Id, Context.User.Id, sideBetAmount ); // push returned
         }
 
         // Announce big win
@@ -315,7 +315,7 @@ public sealed class BaccaratModule : InteractionModuleBase<SocketInteractionCont
             5 => p is >= 4 and <= 7,
             6 => p is 6 or 7,
             //_ => false,
-            _ => throw new ArgumentOutOfRangeException( nameof(bankerTotal), bankerTotal, null )
+            _ => throw new ArgumentOutOfRangeException( nameof(bankerTotal), bankerTotal, null ),
         };
     }
 
