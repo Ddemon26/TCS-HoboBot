@@ -1,9 +1,12 @@
 ﻿using System.Collections.Concurrent;
 using System.Text.Json;
+using Discord.WebSocket;
 namespace TCS.HoboBot.Modules;
 
 public static class PlayersProperties {
-    public static readonly ConcurrentDictionary<ulong, int[]> OwnedProperties = new();
+    //public static readonly ConcurrentDictionary<ulong, int[]> OwnedProperties = new();
+    static readonly ConcurrentDictionary<ulong, Dictionary<ulong, int[]>> GlobalOwnedProperties = new();
+
     public static readonly ConcurrentDictionary<ulong, DateTimeOffset> NextCollect = new();
     public static readonly TimeSpan CollectCooldown = TimeSpan.FromHours( 1 );
 
@@ -41,6 +44,19 @@ public static class PlayersProperties {
 
     static readonly string FilePath = "OwnedProperties.json";
 
+    static string GetFilePath(ulong guildId) {
+        return Path.Combine( "Data", guildId.ToString(), FilePath );
+    }
+
+    public static int[] GetOwnedPropertiesInt(ulong guildId, ulong userId) {
+        if ( GlobalOwnedProperties.TryGetValue( guildId, out var owned ) ) {
+            if ( owned.TryGetValue( userId, out var idx ) ) {
+                return idx;
+            }
+        }
+
+        return [];
+    }
     //get all properties
     public static MonopolyProperty[] GetAllProperties() {
         if ( s_allProperties.Length == 0 ) {
@@ -57,48 +73,93 @@ public static class PlayersProperties {
         return s_allProperties;
     }
 
-    public static MonopolyProperty[] GetOwnedProperties(ulong userId)
-        => !OwnedProperties.TryGetValue( userId, out int[]? idx ) ? [] : idx.Select( i => Properties[i] ).ToArray();
+    public static MonopolyProperty[] GetOwnedProperties(ulong guildId, ulong userId) {
+        var guildProps = GlobalOwnedProperties.GetOrAdd(
+            guildId,
+            _ => new Dictionary<ulong, int[]>()
+        );
 
-    public static void AddProperty(ulong userId, int propertyIndex) {
-        if ( OwnedProperties.TryGetValue( userId, out int[]? idx ) ) {
-            if ( idx.Contains( propertyIndex ) ) {
-                return; // already owns this property
-            }
+        if ( !guildProps.TryGetValue( userId, out var idx ) )
+            return Array.Empty<MonopolyProperty>();
+
+        return idx.Select( i => Properties[i] ).ToArray();
+    }
+
+    public static void AddProperty(ulong guildId, ulong userId, int propertyIndex) {
+        var guildProps = GlobalOwnedProperties.GetOrAdd(
+            guildId,
+            _ => new Dictionary<ulong, int[]>()
+        );
+
+        if ( guildProps.TryGetValue( userId, out var idx ) ) {
+            if ( idx.Contains( propertyIndex ) )
+                return; // already owns
 
             idx = idx.Append( propertyIndex ).ToArray();
         }
         else {
-            idx = [propertyIndex];
+            idx = new[] { propertyIndex };
         }
 
-        OwnedProperties[userId] = idx;
+        guildProps[userId] = idx;
     }
 
-    public static void RemoveProperty(ulong userId, int propertyIndex) {
-        if ( OwnedProperties.TryGetValue( userId, out int[]? idx ) ) {
-            if ( !idx.Contains( propertyIndex ) ) {
-                return; // doesn't own this property
-            }
+    public static void RemoveProperty(ulong guildId, ulong userId, int propertyIndex) {
+        var guildProps = GlobalOwnedProperties.GetOrAdd(
+            guildId,
+            _ => new Dictionary<ulong, int[]>()
+        );
 
-            idx = idx.Where( i => i != propertyIndex ).ToArray();
-        }
-        else {
-            return; // doesn't own any properties
-        }
+        if ( !guildProps.TryGetValue( userId, out var idx ) || !idx.Contains( propertyIndex ) )
+            return; // nothing to remove
 
-        OwnedProperties[userId] = idx;
+        idx = idx.Where( i => i != propertyIndex ).ToArray();
+        guildProps[userId] = idx;
     }
 
 
     // 2-A  ─ SAVE  (no other changes)
     public static async Task SaveAsync() {
-        string json = Serialize( OwnedProperties ); // <-- now Dictionary<ulong,int[]>
-        await File.WriteAllTextAsync( FilePath, json );
+        foreach (KeyValuePair<ulong, Dictionary<ulong, int[]>> kv in GlobalOwnedProperties) {
+            await SaveAsync( kv.Key );
+        }
     }
 
-// 2-B  ─ LOAD
-    public static async Task LoadAsync() {
+    public static async Task SaveAsync(ulong guildId) {
+        string dir = Path.Combine( "Data", guildId.ToString() );
+        Directory.CreateDirectory( dir );
+        string path = GetFilePath( guildId );
+        if ( !GlobalOwnedProperties.TryGetValue( guildId, out Dictionary<ulong, int[]>? guildStashes ) ) {
+            guildStashes = new Dictionary<ulong, int[]>();
+        }
+
+        string json = Serialize( guildStashes );
+        await File.WriteAllTextAsync( path, json );
+    }
+
+    public static async Task LoadAsync(IReadOnlyCollection<SocketGuild> clientGuilds) {
+        const string root = "Data";
+
+        foreach (var guild in clientGuilds) {
+            string dir = Path.Combine( root, guild.Id.ToString() );
+            Directory.CreateDirectory( dir );
+
+            string path = GetFilePath( guild.Id );
+            if ( !File.Exists( path ) ) {
+                continue;
+            }
+
+            string json = await File.ReadAllTextAsync( path );
+            Dictionary<ulong, int[]>? loaded = Deserialize<Dictionary<ulong, int[]>>( json );
+            if ( loaded is null ) {
+                continue;
+            }
+
+            GlobalOwnedProperties[guild.Id] = loaded;
+        }
+    }
+
+    /*public static async Task LoadAsync() {
         if ( !File.Exists( FilePath ) ) {
             return;
         }
@@ -111,9 +172,23 @@ public static class PlayersProperties {
 
         foreach (KeyValuePair<ulong, int[]> kv in loaded)
             OwnedProperties[kv.Key] = kv.Value;
-    }
+    }*/
 
+    /*public static async Task LoadAsync(ulong guildId) {
+        string path = GetFilePath( guildId );
+        if ( !File.Exists( path ) ) {
+            return;
+        }
 
+        string json = await File.ReadAllTextAsync( path );
+        ConcurrentDictionary<ulong, int[]>? loaded = Deserialize<ConcurrentDictionary<ulong, int[]>>( json );
+        if ( loaded is null ) {
+            return;
+        }
+
+        foreach (KeyValuePair<ulong, int[]> kv in loaded)
+            OwnedProperties[kv.Key] = kv.Value;
+    }*/
 
     static readonly JsonSerializerOptions WriteOptions = new() {
         WriteIndented = true,
