@@ -19,13 +19,13 @@ public class DicePlayerModule : InteractionModuleBase<SocketInteractionContext> 
         }
 
         // Check if the user has enough cash
-        if ( PlayersWallet.GetBalance( Context.User.Id ) < bet ) {
+        if ( PlayersWallet.GetBalance( Context.Guild.Id, Context.User.Id ) < bet ) {
             await RespondAsync( $"{Context.User.Mention} doesn't have enough cash!" );
             return;
         }
 
         // check if the opponent has enough cash
-        if ( PlayersWallet.GetBalance( user.Id ) < bet ) {
+        if ( PlayersWallet.GetBalance( Context.Guild.Id, Context.User.Id ) < bet ) {
             await RespondAsync( $"{user.Mention} doesn't have enough cash!" );
             return;
         }
@@ -34,12 +34,12 @@ public class DicePlayerModule : InteractionModuleBase<SocketInteractionContext> 
         int opponentRoll = Rng.Next( 1, MAX + 1 );
 
         if ( userRoll > opponentRoll ) {
-            PlayersWallet.AddToBalance( Context.User.Id, bet );
-            PlayersWallet.SubtractFromBalance( user.Id, bet );
+            PlayersWallet.AddToBalance( Context.Guild.Id, Context.User.Id, bet );
+            PlayersWallet.SubtractFromBalance( Context.Guild.Id, Context.User.Id, bet );
         }
         else if ( userRoll < opponentRoll ) {
-            PlayersWallet.AddToBalance( user.Id, bet );
-            PlayersWallet.SubtractFromBalance( Context.User.Id, bet );
+            PlayersWallet.AddToBalance( Context.Guild.Id, Context.User.Id, bet );
+            PlayersWallet.SubtractFromBalance( Context.Guild.Id, Context.User.Id, bet );
         }
 
         var header = $"🎲 {Context.User.Mention} vs {user.Mention} 🎲";
@@ -49,7 +49,9 @@ public class DicePlayerModule : InteractionModuleBase<SocketInteractionContext> 
             : userRoll < opponentRoll
                 ? $"{user.Mention} wins! (+${bet:0.00})"
                 : "It's a tie!";
-        var balances = $"New balances: {Context.User.Mention}: ${PlayersWallet.GetBalance( Context.User.Id ):0.00}, {user.Mention}: ${PlayersWallet.GetBalance( user.Id ):0.00}";
+        var balances = $"New balances: {Context.User.Mention}: " +
+                       $"${PlayersWallet.GetBalance( Context.Guild.Id, Context.User.Id ):0.00}, {user.Mention}:" +
+                       $" ${PlayersWallet.GetBalance( Context.Guild.Id, Context.User.Id ):0.00}";
 
         await RespondAsync(
             "**DICE GAME**\n" +
