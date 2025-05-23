@@ -105,15 +105,13 @@ public class PropertyBuyModule : InteractionModuleBase<SocketInteractionContext>
 
         // Duplicate & funds checks (same logic you already had) …
         // 3-A  ─ inside HandleBuyAsync -- duplicate-check
-        int[] owned = PlayersProperties.OwnedProperties
-            .GetValueOrDefault( Context.User.Id, [] );
-
+        int[] owned = PlayersProperties.GetOwnedPropertiesInt( Context.Guild.Id, Context.User.Id );
         if ( owned.Contains( selectedIndex ) ) {
             await RespondAsync( $"You already own **{chosen.Name}**.", ephemeral: true );
             return;
         }
 
-        float balance = PlayersWallet.GetBalance( Context.User.Id );
+        float balance = PlayersWallet.GetBalance( Context.Guild.Id, Context.User.Id );
         if ( balance < chosen.Price ) {
             await RespondAsync(
                 $"You don't have enough money. You need ${chosen.Price - balance:N0} more.",
@@ -123,15 +121,11 @@ public class PropertyBuyModule : InteractionModuleBase<SocketInteractionContext>
         }
 
         // Perform purchase
-        PlayersWallet.SubtractFromBalance( Context.User.Id, chosen.Price );
+        PlayersWallet.SubtractFromBalance( Context.Guild.Id, Context.User.Id, chosen.Price );
         // 3-B  ─ add the new index
-        PlayersProperties.OwnedProperties.AddOrUpdate(
-            Context.User.Id,
-            _ => [selectedIndex],
-            (_, old) => old.Append( selectedIndex ).ToArray()
-        );
-        _ = PlayersWallet.SaveAsync();
-        _ = PlayersProperties.SaveAsync();
+        PlayersProperties.AddProperty( Context.Guild.Id, Context.User.Id, selectedIndex );
+        // _ = PlayersWallet.SaveAsync();
+        // _ = PlayersProperties.SaveAsync();
 
         //await DeferAsync( ephemeral: true );
         // Public confirmation (replace RespondAsync + new message)
