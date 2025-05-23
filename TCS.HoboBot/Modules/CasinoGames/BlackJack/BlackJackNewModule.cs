@@ -463,13 +463,13 @@ public class BlackJackNewModule : InteractionModuleBase<SocketInteractionContext
             return;
         }
 
-        if ( PlayersWallet.GetBalance( Context.User.Id ) < bet ) // Assuming PlayersWallet exists
+        if ( PlayersWallet.GetBalance( Context.Guild.Id, Context.User.Id ) < bet ) // Assuming PlayersWallet exists
         {
             await RespondAsync( $"{Context.User.Mention} doesn't have enough cash!", ephemeral: true );
             return;
         }
 
-        PlayersWallet.SubtractFromBalance( Context.User.Id, bet ); // Deduct initial bet
+        PlayersWallet.SubtractFromBalance( Context.Guild.Id, Context.User.Id, bet ); // Deduct initial bet
 
         var game = new BlackjackGame( SharedShoe );
         var session = new GameSession( game, bet );
@@ -524,13 +524,13 @@ public class BlackJackNewModule : InteractionModuleBase<SocketInteractionContext
         }
 
         float additionalBet = session.Game.GetCurrentBet(); // Bet to double is the current hand's bet
-        if ( PlayersWallet.GetBalance( Context.User.Id ) < additionalBet ) {
+        if ( PlayersWallet.GetBalance( Context.Guild.Id, Context.User.Id ) < additionalBet ) {
             await RespondAsync( "You don't have enough funds to double down.", ephemeral: true );
             return;
         }
 
         await DeferAsync();
-        bool success = session.Game.DoubleDown( betAmount => PlayersWallet.SubtractFromBalance( Context.User.Id, betAmount ) );
+        bool success = session.Game.DoubleDown( betAmount => PlayersWallet.SubtractFromBalance( Context.Guild.Id, Context.User.Id, betAmount ) );
         if ( success ) {
             await UpdateGameMessage( session, Context.Interaction );
         }
@@ -548,13 +548,13 @@ public class BlackJackNewModule : InteractionModuleBase<SocketInteractionContext
         }
 
         float betForNewHand = session.Game.GetCurrentBet(); // New hand gets same bet as the one being split
-        if ( PlayersWallet.GetBalance( Context.User.Id ) < betForNewHand ) {
+        if ( PlayersWallet.GetBalance( Context.Guild.Id, Context.User.Id ) < betForNewHand ) {
             await RespondAsync( "You don't have enough funds for the new hand to split.", ephemeral: true );
             return;
         }
 
         await DeferAsync();
-        bool success = session.Game.Split( betAmount => PlayersWallet.SubtractFromBalance( Context.User.Id, betAmount ) );
+        bool success = session.Game.Split( betAmount => PlayersWallet.SubtractFromBalance( Context.Guild.Id, Context.User.Id, betAmount ) );
         if ( success ) {
             await UpdateGameMessage( session, Context.Interaction );
         }
@@ -613,7 +613,7 @@ public class BlackJackNewModule : InteractionModuleBase<SocketInteractionContext
 
                 if ( result.multiplier > 0 ) // If any payout (push or win)
                 {
-                    PlayersWallet.AddToBalance( Context.User.Id, payoutAmount );
+                    PlayersWallet.AddToBalance(Context.Guild.Id, Context.User.Id, payoutAmount );
                 }
 
                 totalNetPlayerGain += (decimal)netGainForHand;
