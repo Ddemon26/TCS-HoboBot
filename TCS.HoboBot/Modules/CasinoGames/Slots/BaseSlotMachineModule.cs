@@ -3,6 +3,7 @@ using Discord.Interactions;
 using Discord.WebSocket;
 using System.Globalization;
 using TCS.HoboBot.Data;
+using TCS.HoboBot.Modules.CasinoGames.Slots;
 
 namespace TCS.HoboBot.Modules.CasinoGames {
     public abstract class BaseSlotMachineModule<TSymbol> : InteractionModuleBase<SocketInteractionContext> where TSymbol : Enum {
@@ -47,7 +48,7 @@ namespace TCS.HoboBot.Modules.CasinoGames {
             }
             else if ( interactionToModify != null ) // This means it's a button interaction for spin again
             {
-                if ( PlayersWallet.GetBalance( Context.User.Id ) < processingBet ) {
+                if ( PlayersWallet.GetBalance( Context.Guild.Id, Context.User.Id  ) < processingBet ) {
                     var error = $"{Context.User.Mention} doesn't have enough cash for another spin at ${processingBet:0.00}!";
                     await interactionToModify.ModifyOriginalResponseAsync( m => {
                             m.Content = error;
@@ -62,7 +63,7 @@ namespace TCS.HoboBot.Modules.CasinoGames {
                 }
             }
 
-            PlayersWallet.SubtractFromBalance( Context.User.Id, processingBet );
+            PlayersWallet.SubtractFromBalance( Context.Guild.Id, Context.User.Id , processingBet );
             await SpinAndRespondAsync( processingBet, isSpinAgainRequest || interactionToModify != null, interactionToModify );
         }
 
@@ -107,8 +108,8 @@ namespace TCS.HoboBot.Modules.CasinoGames {
                 bet = MaxBet;
             }
 
-            if ( PlayersWallet.GetBalance( Context.User.Id ) < bet ) {
-                error = $"{Context.User.Mention} doesn’t have enough cash! Your balance is ${PlayersWallet.GetBalance( Context.User.Id ):C2}. You tried to bet ${bet:C2}.";
+            if ( PlayersWallet.GetBalance( Context.Guild.Id, Context.User.Id  ) < bet ) {
+                error = $"{Context.User.Mention} doesn’t have enough cash! Your balance is ${PlayersWallet.GetBalance( Context.Guild.Id, Context.User.Id  ):C2}. You tried to bet ${bet:C2}.";
                 return false;
             }
 
@@ -122,7 +123,9 @@ namespace TCS.HoboBot.Modules.CasinoGames {
 
             if ( payoutMultiplier > 0 ) {
                 totalWinningsValue = (decimal)bet * payoutMultiplier;
-                PlayersWallet.AddToBalance( Context.User.Id, (float)totalWinningsValue );
+                PlayersWallet.AddToBalance( Context.Guild.Id, Context.User.Id , (float)totalWinningsValue );
+            }else {
+                CasinoManager.AddToSlotsJackpots( Context.Guild.Id, bet );
             }
 
             var embed = BuildGameEmbedInternal( Context.User, spinResult, bet, payoutMultiplier, winDescription, totalWinningsValue );
