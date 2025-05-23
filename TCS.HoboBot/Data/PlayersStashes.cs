@@ -1,6 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using System.Text.Json;
-using TCS.HoboBot.Modules.Moderation;
+using Discord.WebSocket;
 namespace TCS.HoboBot.Modules.DrugDealer;
 
 // public enum DealerRole {
@@ -13,9 +13,10 @@ namespace TCS.HoboBot.Modules.DrugDealer;
 //     Underboss,
 //     Godfather
 // }
-public enum DrugType { Weed, Cocaine, Heroin, Crack, Meth, Lsd, Shrooms, Ecstasy, }
+public enum DrugType { Weed, Cocaine, Heroin, Crack, Meth, Lsd, Shrooms, Ecstasy }
+
 public static class PlayersStashes {
-    public static readonly ConcurrentDictionary<ulong, PlayerStash> Stash = new();
+    //public static readonly ConcurrentDictionary<ulong, PlayerStash> Stash = new();
     public static readonly ConcurrentDictionary<ulong, DateTimeOffset> NextWeedGrow = new();
     public static readonly ConcurrentDictionary<ulong, DateTimeOffset> NextShroomGrow = new();
 
@@ -32,6 +33,9 @@ public static class PlayersStashes {
 
     static readonly string FilePath = "playerStashes.json";
 
+    static readonly ConcurrentDictionary<ulong, Dictionary<ulong, PlayerStash>> GlobalStashCache = new();
+    static string GetFilePath(ulong guildId) => Path.Combine( "Data", guildId.ToString(), FilePath );
+
     public static float GetPriceByType(DrugType type) {
         return type switch {
             DrugType.Weed => 10,
@@ -42,12 +46,12 @@ public static class PlayersStashes {
             DrugType.Meth => 400,
             DrugType.Lsd => 500,
             DrugType.Ecstasy => 700,
-            _ => throw new ArgumentOutOfRangeException( nameof(type), type, null )
+            _ => throw new ArgumentOutOfRangeException( nameof(type), type, null ),
         };
     }
 
-    public static float GetTotalSellAmountFromUser(ulong userId) {
-        var stash = GetStash( userId );
+    public static float GetTotalSellAmountFromUser(ulong guildId, ulong userId) {
+        var stash = GetStash( guildId, userId );
         return stash.WeedAmount * GetPriceByType( DrugType.Weed ) +
                stash.ShroomsAmount * GetPriceByType( DrugType.Shrooms ) +
                stash.CocaineAmount * GetPriceByType( DrugType.Cocaine ) +
@@ -58,34 +62,75 @@ public static class PlayersStashes {
                stash.EcstasyAmount * GetPriceByType( DrugType.Ecstasy );
     }
 
-    public static PlayerStash GetStash(ulong userId) {
-        if ( !Stash.TryGetValue( userId, out var stash ) ) {
-            stash = new PlayerStash();
-            Stash[userId] = stash;
-        }
+    public static PlayerStash GetStash(ulong guildId, ulong userId) {
+        Dictionary<ulong, PlayerStash> guildStashes = GlobalStashCache.GetOrAdd(
+            guildId,
+            _ => new Dictionary<ulong, PlayerStash>()
+        );
+
+        if ( guildStashes.TryGetValue( userId, out var stash ) ) return stash;
+        stash = new PlayerStash();
+        guildStashes[userId] = stash;
 
         return stash;
     }
 
-    public static void ResetStash(ulong userId) {
-        Stash[userId] = new PlayerStash();
+    //save stash to the cache
+    public static void SaveStash(ulong guildId, ulong userId, PlayerStash stash) {
+        Dictionary<ulong, PlayerStash> guildStashes = GlobalStashCache.GetOrAdd(
+            guildId,
+            _ => new Dictionary<ulong, PlayerStash>()
+        );
+
+        guildStashes[userId] = stash;
+    }
+
+    public static void ResetStash(ulong guildId, ulong userId) {
+        Dictionary<ulong, PlayerStash> guildStashes = GlobalStashCache.GetOrAdd(
+            guildId,
+            _ => new Dictionary<ulong, PlayerStash>()
+        );
+
+        guildStashes[userId] = new PlayerStash();
     }
 
 
     public static async Task SaveAsync() {
-        string json = Serialize( Stash );
-        await File.WriteAllTextAsync( FilePath, json );
+        foreach (KeyValuePair<ulong, Dictionary<ulong, PlayerStash>> kv in GlobalStashCache) {
+            await SaveAsync( kv.Key );
+        }
     }
 
-    public static async Task LoadAsync() {
-        if ( File.Exists( FilePath ) ) {
-            string json = await File.ReadAllTextAsync( FilePath );
-            ConcurrentDictionary<ulong, PlayerStash>? loaded = Deserialize<ConcurrentDictionary<ulong, PlayerStash>>( json );
-            if ( loaded != null ) {
-                foreach (KeyValuePair<ulong, PlayerStash> kv in loaded) {
-                    Stash[kv.Key] = kv.Value;
-                }
+    static async Task SaveAsync(ulong guildId) {
+        string dir = Path.Combine( "Data", guildId.ToString() );
+        Directory.CreateDirectory( dir );
+        string path = GetFilePath( guildId );
+        if ( !GlobalStashCache.TryGetValue( guildId, out Dictionary<ulong, PlayerStash>? guildStashes ) )
+            guildStashes = new Dictionary<ulong, PlayerStash>();
+
+        string json = Serialize( guildStashes );
+        await File.WriteAllTextAsync( path, json );
+    }
+
+    public static async Task LoadAsync(IReadOnlyCollection<SocketGuild> clientGuilds) {
+        const string root = "Data";
+
+        foreach (var guild in clientGuilds) {
+            string dir = Path.Combine( root, guild.Id.ToString() );
+            Directory.CreateDirectory( dir );
+
+            string path = GetFilePath( guild.Id );
+            if ( !File.Exists( path ) ) {
+                continue;
             }
+
+            string json = await File.ReadAllTextAsync( path );
+            Dictionary<ulong, PlayerStash>? loaded = Deserialize<Dictionary<ulong, PlayerStash>>( json );
+            if ( loaded is null ) {
+                continue;
+            }
+
+            GlobalStashCache[guild.Id] = loaded;
         }
     }
 
@@ -99,7 +144,6 @@ public static class PlayersStashes {
     static string Serialize<T>(T value) => JsonSerializer.Serialize( value, WriteOptions );
     static T? Deserialize<T>(string json) => JsonSerializer.Deserialize<T>( json, ReadOptions );
 }
-
 
 [Serializable] public class PlayerStash {
     public DealerRole Role { get; set; } = DealerRole.LowLevelDealer;
@@ -124,7 +168,7 @@ public static class PlayersStashes {
             DrugType.Meth => MethAmount,
             DrugType.Lsd => LsdAmount,
             DrugType.Ecstasy => EcstasyAmount,
-            _ => throw new ArgumentOutOfRangeException( nameof(type), type, null )
+            _ => throw new ArgumentOutOfRangeException( nameof(type), type, null ),
         };
     }
 
