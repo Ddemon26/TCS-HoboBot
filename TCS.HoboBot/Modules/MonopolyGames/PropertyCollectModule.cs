@@ -10,7 +10,7 @@ public class PropertyCheckModule : InteractionModuleBase<SocketInteractionContex
         // determine whose properties to check
         var target = user ?? Context.User;
 
-        MonopolyProperty[] owned = PlayersProperties.GetOwnedProperties( target.Id );
+        MonopolyProperty[] owned = PlayersProperties.GetOwnedProperties( Context.Guild.Id , target.Id );
         if ( owned.Length == 0 ) {
             await RespondAsync( $"{target.GlobalName} doesn't own any properties.", ephemeral: true );
             return;
@@ -46,7 +46,7 @@ public class PropertyCollectModule : InteractionModuleBase<SocketInteractionCont
     [SlashCommand( "property_collect", "Collect money from your properties" )]
     public async Task CollectPropertyAsync() {
         // 1 – get the user’s properties as *objects*, not indices
-        MonopolyProperty[] owned = PlayersProperties.GetOwnedProperties( Context.User.Id );
+        MonopolyProperty[] owned = PlayersProperties.GetOwnedProperties( Context.Guild.Id, Context.User.Id );
         if ( owned.Length == 0 ) {
             await RespondAsync( "You don't own any properties.", ephemeral: true );
             return;
@@ -66,7 +66,7 @@ public class PropertyCollectModule : InteractionModuleBase<SocketInteractionCont
 
         // 3 – collect
         float total = owned.Sum( p => p.CollectAmount );
-        PlayersWallet.AddToBalance( Context.User.Id, total );
+        PlayersWallet.AddToBalance( Context.Guild.Id, Context.User.Id, total );
         PlayersProperties.NextCollect[Context.User.Id] = now + PlayersProperties.CollectCooldown;
 
         await RespondAsync(
