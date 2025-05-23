@@ -60,7 +60,7 @@ public sealed class CrapsModule : InteractionModuleBase<SocketInteractionContext
         // For consistency with slots when game actually starts, we can defer.
         // However, initial response is fine here before any game state is truly active.
 
-        PlayersWallet.SubtractFromBalance( Context.User.Id, betAmount );
+        PlayersWallet.SubtractFromBalance( Context.Guild.Id, Context.User.Id, betAmount );
 
         // Initial roll is a Come-Out roll, so point is 0.
         await RespondWithRollButtonAsync(betAmount, initialBet, betType, 0, isFollowUp: false);  
@@ -124,7 +124,7 @@ public sealed class CrapsModule : InteractionModuleBase<SocketInteractionContext
             bet = MAX_BET_CRAPS;
         }
 
-        if ( PlayersWallet.GetBalance( Context.User.Id ) < bet ) {
+        if ( PlayersWallet.GetBalance( Context.Guild.Id, Context.User.Id ) < bet ) {
             error = $"{Context.User.Mention} doesn’t have enough cash for that bet!";
             return false;
         }
@@ -246,7 +246,7 @@ public sealed class CrapsModule : InteractionModuleBase<SocketInteractionContext
         }
 
         if ( gameConcluded && payoutMultiplier > 0m ) {
-            PlayersWallet.AddToBalance( Context.User.Id, betAmount * (float)payoutMultiplier );
+            PlayersWallet.AddToBalance( Context.Guild.Id, Context.User.Id, betAmount * (float)payoutMultiplier );
         }
 
         if ( gameConcluded ) {
