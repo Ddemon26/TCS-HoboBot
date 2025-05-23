@@ -33,10 +33,10 @@ public class SpinWheelModule : InteractionModuleBase<SocketInteractionContext> {
             await RespondAsync( message );
         }
         else {
-            PlayersWallet.AddToBalance( userId, 1f );
+            PlayersWallet.AddToBalance(Context.Guild.Id, userId, 1f );
             await RespondAsync(
                 $"You won 1 buck\n" +
-                $"{Context.User.Mention} Hobo wallet now holds **${PlayersWallet.GetBalance( userId ):0.00}**"
+                $"{Context.User.Mention} Hobo wallet now holds **${PlayersWallet.GetBalance( Context.Guild.Id, userId ):0.00}**"
             );
         }
     }
