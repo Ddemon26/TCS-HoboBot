@@ -49,30 +49,32 @@ namespace TCS.HoboBot.Modules.CasinoGames.Slots {
             { AdvancedSlotIcon.Wild, "🌟" }, { AdvancedSlotIcon.Scatter, "💲" },
         };
 
-        const float RTP = 1.5f; // Adjustable RTP percentage
+        const float RTP = 1.2f; // Adjustable RTP percentage
+        // Scale pre-RTP to exactly 100%
+        const decimal SCALING_FACTOR = 0.988973m;
 
-// Original base payouts designed at theoretical RTP = 100%
+        // Base payouts (scaled for 100% pre-RTP)
         static readonly Dictionary<AdvancedSlotIcon, Dictionary<int, decimal>> BaseSymbolLinePayouts = new() {
-            { AdvancedSlotIcon.Nine, new Dictionary<int, decimal> { { 3, 0.2m }, { 4, 0.4m }, { 5, 0.8m } } },
-            { AdvancedSlotIcon.Ten, new Dictionary<int, decimal> { { 3, 0.2m }, { 4, 0.4m }, { 5, 0.8m } } },
-            { AdvancedSlotIcon.Jack, new Dictionary<int, decimal> { { 3, 0.3m }, { 4, 0.6m }, { 5, 1.2m } } },
-            { AdvancedSlotIcon.Queen, new Dictionary<int, decimal> { { 3, 0.3m }, { 4, 0.6m }, { 5, 1.2m } } },
-            { AdvancedSlotIcon.King, new Dictionary<int, decimal> { { 3, 0.4m }, { 4, 0.8m }, { 5, 1.6m } } },
-            { AdvancedSlotIcon.Ace, new Dictionary<int, decimal> { { 3, 0.5m }, { 4, 1.0m }, { 5, 2.0m } } },
-            { AdvancedSlotIcon.GemPurple, new Dictionary<int, decimal> { { 3, 0.8m }, { 4, 1.6m }, { 5, 3.2m } } },
-            { AdvancedSlotIcon.GemBlue, new Dictionary<int, decimal> { { 3, 1.0m }, { 4, 2.0m }, { 5, 4.0m } } },
-            { AdvancedSlotIcon.GemGreen, new Dictionary<int, decimal> { { 3, 1.2m }, { 4, 2.4m }, { 5, 4.8m } } },
-            { AdvancedSlotIcon.GemRed, new Dictionary<int, decimal> { { 3, 1.5m }, { 4, 3.0m }, { 5, 6.0m } } },
-            { AdvancedSlotIcon.Wild, new Dictionary<int, decimal> { { 3, 2.0m }, { 4, 4.0m }, { 5, 8.0m } } },
+            { AdvancedSlotIcon.Nine, new Dictionary<int, decimal> { { 3, 0.2m * SCALING_FACTOR }, { 4, 0.4m * SCALING_FACTOR }, { 5, 0.8m * SCALING_FACTOR } } },
+            { AdvancedSlotIcon.Ten, new Dictionary<int, decimal> { { 3, 0.2m * SCALING_FACTOR }, { 4, 0.4m * SCALING_FACTOR }, { 5, 0.8m * SCALING_FACTOR } } },
+            { AdvancedSlotIcon.Jack, new Dictionary<int, decimal> { { 3, 0.3m * SCALING_FACTOR }, { 4, 0.6m * SCALING_FACTOR }, { 5, 1.2m * SCALING_FACTOR } } },
+            { AdvancedSlotIcon.Queen, new Dictionary<int, decimal> { { 3, 0.3m * SCALING_FACTOR }, { 4, 0.6m * SCALING_FACTOR }, { 5, 1.2m * SCALING_FACTOR } } },
+            { AdvancedSlotIcon.King, new Dictionary<int, decimal> { { 3, 0.4m * SCALING_FACTOR }, { 4, 0.8m * SCALING_FACTOR }, { 5, 1.6m * SCALING_FACTOR } } },
+            { AdvancedSlotIcon.Ace, new Dictionary<int, decimal> { { 3, 0.5m * SCALING_FACTOR }, { 4, 1.0m * SCALING_FACTOR }, { 5, 2.0m * SCALING_FACTOR } } },
+            { AdvancedSlotIcon.GemPurple, new Dictionary<int, decimal> { { 3, 0.8m * SCALING_FACTOR }, { 4, 1.6m * SCALING_FACTOR }, { 5, 3.2m * SCALING_FACTOR } } },
+            { AdvancedSlotIcon.GemBlue, new Dictionary<int, decimal> { { 3, 1.0m * SCALING_FACTOR }, { 4, 2.0m * SCALING_FACTOR }, { 5, 4.0m * SCALING_FACTOR } } },
+            { AdvancedSlotIcon.GemGreen, new Dictionary<int, decimal> { { 3, 1.2m * SCALING_FACTOR }, { 4, 2.4m * SCALING_FACTOR }, { 5, 4.8m * SCALING_FACTOR } } },
+            { AdvancedSlotIcon.GemRed, new Dictionary<int, decimal> { { 3, 1.5m * SCALING_FACTOR }, { 4, 3.0m * SCALING_FACTOR }, { 5, 6.0m * SCALING_FACTOR } } },
+            { AdvancedSlotIcon.Wild, new Dictionary<int, decimal> { { 3, 2.0m * SCALING_FACTOR }, { 4, 4.0m * SCALING_FACTOR }, { 5, 8.0m * SCALING_FACTOR } } },
         };
 
-// Base scatter payouts at theoretical 100% RTP
+        // Scatter payouts (scaled for 100% pre-RTP)
         static readonly Dictionary<int, decimal> BaseScatterPayouts = new() {
-            { 3, 2m }, { 4, 5m }, { 5, 15m },
+            { 3, 2m * SCALING_FACTOR }, { 4, 5m * SCALING_FACTOR }, { 5, 15m * SCALING_FACTOR },
         };
 
-// Runtime scaling method using the RTP factor
-        decimal GetAdjustedSymbolPayout(AdvancedSlotIcon symbol, int count) {
+        // Runtime scaling method using the RTP factor
+        static decimal GetAdjustedSymbolPayout(AdvancedSlotIcon symbol, int count) {
             if ( BaseSymbolLinePayouts.TryGetValue( symbol, out Dictionary<int, decimal>? payouts ) && payouts.TryGetValue( count, out decimal basePayout ) ) {
                 return basePayout * (decimal)RTP;
             }
@@ -80,7 +82,7 @@ namespace TCS.HoboBot.Modules.CasinoGames.Slots {
             return 0m;
         }
 
-        decimal GetAdjustedScatterPayout(int count) {
+        static decimal GetAdjustedScatterPayout(int count) {
             if ( BaseScatterPayouts.TryGetValue( count, out decimal baseScatterPayout ) ) {
                 return baseScatterPayout * (decimal)RTP;
             }
@@ -97,7 +99,9 @@ namespace TCS.HoboBot.Modules.CasinoGames.Slots {
             }
 
             // Standard Horizontal Lines
-            for (var r = 0; r < rows; r++) lines.Add( Enumerable.Repeat( r, cols ).ToList() );
+            for (var r = 0; r < rows; r++) {
+                lines.Add( Enumerable.Repeat( r, cols ).ToList() );
+            }
 
             // Additional common patterns (example lines)
             if ( rows >= 3 ) {
@@ -118,9 +122,9 @@ namespace TCS.HoboBot.Modules.CasinoGames.Slots {
             return lines.Take( rows == 4 ? 15 : 20 ).ToList();
         }
 
-        string GetEmoji(AdvancedSlotIcon icon) => IconToEmojiMap.GetValueOrDefault( icon, "❓" );
+        static string GetEmoji(AdvancedSlotIcon icon) => IconToEmojiMap.GetValueOrDefault( icon, "❓" );
 
-        AdvancedSlotIcon GetRandomReelSymbol(bool allowScatter = false) {
+        static AdvancedSlotIcon GetRandomReelSymbol(bool allowScatter = false) {
             if ( allowScatter && Rng.Next( 100 ) < 10 ) // ~10% chance for scatter if allowed (e.g., specific reels)
             {
                 return AdvancedSlotIcon.Scatter;
@@ -144,9 +148,9 @@ namespace TCS.HoboBot.Modules.CasinoGames.Slots {
             return grid;
         }
 
-        (decimal totalBetMultiplier, string winDescription) CalculateGridPayout(AdvancedSlotIcon[][] grid, int rows, int cols) {
+        static (decimal totalBetMultiplier, string winDescription) CalculateGridPayout(AdvancedSlotIcon[][] grid, int rows, int cols) {
             var combinedLineMultiplier = 0m;
-            List<string> winDescriptions = new();
+            List<string> winDescriptions = [];
             List<List<int>> paylines = GetPaylines( rows, cols );
 
             // Line Wins (Left to Right)
@@ -229,21 +233,23 @@ namespace TCS.HoboBot.Modules.CasinoGames.Slots {
             }
 
             // add your wallet balance to the outcome message
-            outcomeMessage += $"\nYour new balance: ${PlayersWallet.GetBalance( user.Id ):C2}";
+            outcomeMessage += $"\nYour new balance: {PlayersWallet.GetBalance(Context.Guild.Id, user.Id ):C2}";
 
             var embedBuilder = new EmbedBuilder()
                 .WithTitle( $"Advanced Slots ({rows}x{cols}) – {bet:C2} Bet" )
                 .WithDescription( $"{user.Mention} spins the reels…\n\n{gridDisplay.ToString().Trim()}\n\n{winDescription}" )
                 .WithFooter( outcomeMessage );
 
-            if ( profit > 0 ) {
-                embedBuilder.WithColor( Color.Green );
-            }
-            else if ( profit == 0 && payoutMultiplier > 0 ) {
-                embedBuilder.WithColor( Color.LightGrey );
-            }
-            else {
-                embedBuilder.WithColor( Color.Red );
+            switch (profit) {
+                case > 0:
+                    embedBuilder.WithColor( Color.Green );
+                    break;
+                case 0 when payoutMultiplier > 0:
+                    embedBuilder.WithColor( Color.LightGrey );
+                    break;
+                default:
+                    embedBuilder.WithColor( Color.Red );
+                    break;
             }
 
             return embedBuilder.Build();
@@ -251,17 +257,17 @@ namespace TCS.HoboBot.Modules.CasinoGames.Slots {
 
         bool ValidateAdvancedBet(ref float bet, out string? error) {
             error = null;
-            if ( bet < MIN_BET_ADV ) {
-                error = $"Bet must be at least ${MIN_BET_ADV:C2}.";
-                return false;
+            switch (bet) {
+                case < MIN_BET_ADV:
+                    error = $"Bet must be at least ${MIN_BET_ADV:C2}.";
+                    return false;
+                case > MAX_BET_ADV:
+                    bet = MAX_BET_ADV; // Cap bet
+                    break;
             }
 
-            if ( bet > MAX_BET_ADV ) {
-                bet = MAX_BET_ADV; // Cap bet
-            }
-
-            if ( PlayersWallet.GetBalance( Context.User.Id ) < bet ) {
-                error = $"{Context.User.Mention} does’t have enough cash! Your balance: ${PlayersWallet.GetBalance( Context.User.Id ):C2}. Bet: ${bet:C2}.";
+            if ( PlayersWallet.GetBalance( Context.Guild.Id, Context.User.Id ) < bet ) {
+                error = $"{Context.User.Mention} does’t have enough cash! Your balance: ${PlayersWallet.GetBalance( Context.Guild.Id, Context.User.Id ):C2}. Bet: ${bet:C2}.";
                 return false;
             }
 
@@ -278,7 +284,7 @@ namespace TCS.HoboBot.Modules.CasinoGames.Slots {
             }
             else if ( interaction != null ) // Spin again funds check
             {
-                if ( PlayersWallet.GetBalance( Context.User.Id ) < currentBet ) {
+                if ( PlayersWallet.GetBalance( Context.Guild.Id, Context.User.Id  ) < currentBet ) {
                     await interaction.ModifyOriginalResponseAsync( m => {
                             m.Content = $"{Context.User.Mention} doesn't have enough cash for ${currentBet:C2}!";
                             m.Components = new ComponentBuilder().Build();
@@ -288,13 +294,15 @@ namespace TCS.HoboBot.Modules.CasinoGames.Slots {
                 }
             }
 
-            PlayersWallet.SubtractFromBalance( Context.User.Id, currentBet );
+            PlayersWallet.SubtractFromBalance( Context.Guild.Id, Context.User.Id , currentBet );
             AdvancedSlotIcon[][] spinResult = SpinGrid( rows, cols );
             (decimal payoutMult, string winDesc) = CalculateGridPayout( spinResult, rows, cols );
             decimal totalReturned = (decimal)currentBet * payoutMult;
 
             if ( payoutMult > 0 ) {
-                PlayersWallet.AddToBalance( Context.User.Id, (float)totalReturned );
+                PlayersWallet.AddToBalance( Context.Guild.Id, Context.User.Id , (float)totalReturned );
+            }else {
+                CasinoManager.AddToSlotsJackpots( Context.Guild.Id, bet );
             }
 
             var embed = BuildAdvancedEmbed( Context.User, spinResult, currentBet, payoutMult, winDesc, totalReturned, rows, cols );
