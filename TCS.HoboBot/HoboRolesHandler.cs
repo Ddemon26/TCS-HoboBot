@@ -1,7 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using Discord;
 using Discord.WebSocket;
-using TCS.HoboBot.Modules.Moderation;
 namespace TCS.HoboBot;
 
 public static class HoboRolesHandler {
