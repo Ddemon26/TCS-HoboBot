@@ -17,7 +17,7 @@ public class PokerPlayerModule : InteractionModuleBase<SocketInteractionContext>
         { "Rainbow", "🌈" },
         { "Pastel", "🌸" },
         { "White", "⚪" },
-        { "Black", "⚫" }
+        { "Black", "⚫" },
     };
 
     // Approximate RuneScape flower odds (weights sum to 1017)
@@ -42,12 +42,12 @@ public class PokerPlayerModule : InteractionModuleBase<SocketInteractionContext>
         }
 
         // Check balances
-        if ( PlayersWallet.GetBalance( Context.User.Id ) < bet ) {
+        if ( PlayersWallet.GetBalance( Context.Guild.Id, Context.User.Id ) < bet ) {
             await RespondAsync( $"{Context.User.Mention} doesn't have enough cash!" );
             return;
         }
 
-        if ( PlayersWallet.GetBalance( user.Id ) < bet ) {
+        if ( PlayersWallet.GetBalance( Context.Guild.Id, Context.User.Id ) < bet ) {
             await RespondAsync( $"{user.GlobalName} doesn't have enough cash!", ephemeral: true );
             return;
         }
@@ -62,18 +62,18 @@ public class PokerPlayerModule : InteractionModuleBase<SocketInteractionContext>
 
         string result;
         if ( playerRank < opponentRank ) {
-            PlayersWallet.AddToBalance( Context.User.Id, bet );
-            PlayersWallet.SubtractFromBalance( user.Id, bet );
+            PlayersWallet.AddToBalance( Context.Guild.Id, Context.User.Id, bet );
+            PlayersWallet.SubtractFromBalance( Context.Guild.Id, Context.User.Id, bet );
             result = $"{Context.User.Mention} wins! (+${bet:0.00})\n" +
-                     $"New balances: {Context.User.Mention}: ${PlayersWallet.GetBalance( Context.User.Id ):0.00}, " +
-                     $"{user.Mention}: ${PlayersWallet.GetBalance( user.Id ):0.00}";
+                     $"New balances: {Context.User.Mention}: ${PlayersWallet.GetBalance( Context.Guild.Id, Context.User.Id ):0.00}, " +
+                     $"{user.Mention}: ${PlayersWallet.GetBalance( Context.Guild.Id, Context.User.Id ):0.00}";
         }
         else if ( playerRank > opponentRank ) {
-            PlayersWallet.AddToBalance( user.Id, bet );
-            PlayersWallet.SubtractFromBalance( Context.User.Id, bet );
+            PlayersWallet.AddToBalance( Context.Guild.Id, Context.User.Id, bet );
+            PlayersWallet.SubtractFromBalance( Context.Guild.Id, Context.User.Id, bet );
             result = $"{user.Mention} wins! (+${bet:0.00})\n" +
-                     $"New balances: {Context.User.Mention}: ${PlayersWallet.GetBalance( Context.User.Id ):0.00}, " +
-                     $"{user.Mention}: ${PlayersWallet.GetBalance( user.Id ):0.00}";
+                     $"New balances: {Context.User.Mention}: ${PlayersWallet.GetBalance( Context.Guild.Id, Context.User.Id ):0.00}, " +
+                     $"{user.Mention}: ${PlayersWallet.GetBalance( Context.Guild.Id, Context.User.Id ):0.00}";
         }
         else {
             result = "It's a tie! No money changes hands.";
@@ -125,7 +125,7 @@ public class PokerPlayerModule : InteractionModuleBase<SocketInteractionContext>
             var g when g[0] == 3 => 4, // 3‑oak
             var g when g[0] == 2 && g[1] == 2 => 5, // Two Pair
             var g when g[0] == 2 => 6, // One Pair
-            _ => 7 // Bust
+            _ => 7, // Bust
         };
     }
 
@@ -138,7 +138,7 @@ public class PokerPlayerModule : InteractionModuleBase<SocketInteractionContext>
         5 => "Two Pair",
         6 => "One Pair",
         7 => "Bust",
-        _ => "Unknown"
+        _ => "Unknown",
     };
 
     static string FormatHand(IEnumerable<string> hand) =>
