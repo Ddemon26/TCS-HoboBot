@@ -136,7 +136,7 @@ public sealed class RouletteModule : InteractionModuleBase<SocketInteractionCont
             return;
         }
 
-        if ( PlayersWallet.GetBalance( userId ) < amount ) {
+        if ( PlayersWallet.GetBalance(Context.Guild.Id, userId ) < amount ) {
             await FollowupAsync( "You don't have enough funds for this bet.", ephemeral: true );
             await Context.Interaction.ModifyOriginalResponseAsync( m => {
                     m.Embed = BuildManageBetsEmbed( userId );
@@ -157,7 +157,7 @@ public sealed class RouletteModule : InteractionModuleBase<SocketInteractionCont
             }
 
             ActivePlayerBets[userId].Add( parsedBet );
-            PlayersWallet.SubtractFromBalance( userId, amount );
+            PlayersWallet.SubtractFromBalance(Context.Guild.Id, userId, amount );
             // No followup needed here, modify the original
         }
 
@@ -178,7 +178,7 @@ public sealed class RouletteModule : InteractionModuleBase<SocketInteractionCont
                 totalRefund += bet.Amount;
             }
 
-            PlayersWallet.AddToBalance( userId, totalRefund );
+            PlayersWallet.AddToBalance( Context.Guild.Id, userId, totalRefund );
             bets.Clear();
         }
 
@@ -230,7 +230,7 @@ public sealed class RouletteModule : InteractionModuleBase<SocketInteractionCont
 
         // Refund winnings
         if ( totalPayout > 0 ) {
-            PlayersWallet.AddToBalance( userId, totalPayout );
+            PlayersWallet.AddToBalance( Context.Guild.Id, userId, totalPayout );
         }
 
         // Publicly announce any net win
@@ -325,11 +325,11 @@ public sealed class RouletteModule : InteractionModuleBase<SocketInteractionCont
             }
 
             embed.AddField( "Your Current Bets:", sb.ToString().Length > 1024 ? "Too many bets to display all." : sb.ToString() );
-            embed.WithFooter( $"Total Bet Amount: ${totalBet:0.00} | Balance: ${PlayersWallet.GetBalance( userId ):0.00}" );
+            embed.WithFooter( $"Total Bet Amount: ${totalBet:0.00} | Balance: ${PlayersWallet.GetBalance( Context.Guild.Id, userId ):0.00}" );
         }
         else {
             embed.AddField( "Your Current Bets:", "No bets placed yet." );
-            embed.WithFooter( $"Balance: ${PlayersWallet.GetBalance( userId ):0.00}" );
+            embed.WithFooter( $"Balance: ${PlayersWallet.GetBalance( Context.Guild.Id, userId ):0.00}" );
         }
 
         return embed.Build();
