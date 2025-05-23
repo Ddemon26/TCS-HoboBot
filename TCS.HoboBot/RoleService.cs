@@ -17,7 +17,7 @@ public enum DealerRole {
     Kingpin,
     DrugLord,
     Underboss,
-    Godfather
+    Godfather,
 }
 
 public readonly record struct RoleSpec(
@@ -161,7 +161,7 @@ public sealed class RoleService : IHostedService, IDisposable {
         try {
             string json = File.ReadAllText( m_cachePath );
             HoboRolesHandler.Cache = JsonSerializer.Deserialize<
-                                         ConcurrentDictionary<ulong, Dictionary<DealerRole, ulong>>>( json, Json )!
+                                         ConcurrentDictionary<ulong, Dictionary<DealerRole, ulong>>>( json, Json )
                                      ?? new ConcurrentDictionary<ulong, Dictionary<DealerRole, ulong>>();
         }
         catch (Exception ex) {
