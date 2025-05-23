@@ -5,55 +5,48 @@ using System.Text;
 using TCS.HoboBot.Data;
 
 namespace TCS.HoboBot.Modules.CasinoGames {
-    public enum ThreeXThreeSlotIcon { Cherry, Lemon, Orange, Plum, Bell, Hotdog, Bar, Seven, Rare }
-
-    public sealed class SlotMachine3X3Module : BaseSlotMachineModule<ThreeXThreeSlotIcon> {
+    public sealed class SlotMachine3X3Module : BaseSlotMachineModule<ClassicSlotIcon> {
         protected override string GameName => "3x3 Slots";
         protected override string GameCommandPrefix => "slots3x3";
 
-        static readonly Dictionary<ulong, (int spinsRemaining, float betAmount)> ActiveFreeSpins = new();
-
         static readonly IReadOnlyList<string> Emojis = [
-            "🍒", "🍋", "🍊", "🍑", "🔔", "🌭", "🍷", "7️⃣", "💠"
+            "🍒", "🍋", "🍊", "🍑", "🔔", "🌭", "🍷", "7️⃣",
         ];
         protected override IReadOnlyList<string> SymbolToEmojiMap => Emojis;
 
-        static readonly IReadOnlyList<ThreeXThreeSlotIcon> Icons =
-            Enum.GetValues( typeof(ThreeXThreeSlotIcon) ).Cast<ThreeXThreeSlotIcon>().ToList().AsReadOnly();
-        protected override IReadOnlyList<ThreeXThreeSlotIcon> Symbols => Icons;
+        static readonly IReadOnlyList<ClassicSlotIcon> Icons =
+            Enum.GetValues( typeof(ClassicSlotIcon) ).Cast<ClassicSlotIcon>().ToList().AsReadOnly();
+        protected override IReadOnlyList<ClassicSlotIcon> Symbols => Icons;
 
         protected override int NumberOfReels => 3;
         protected override int NumberOfRows => 3;
 
         static readonly List<List<(int r, int c)>> Paylines = [
-            new() { (0, 0), (0, 1), (0, 2) },
-            new() { (1, 0), (1, 1), (1, 2) },
-            new() { (2, 0), (2, 1), (2, 2) },
-            new() { (0, 0), (1, 1), (2, 2) },
-            new() { (0, 2), (1, 1), (2, 0) },
+            new() { (0, 0), (0, 1), (0, 2) }, // Top
+            new() { (1, 0), (1, 1), (1, 2) }, // Mid
+            new() { (2, 0), (2, 1), (2, 2) }, // Bot
+            new() { (0, 0), (1, 1), (2, 2) }, // Diag ↘
+            new() { (0, 2), (1, 1), (2, 0) }, // Diag ↙
         ];
 
-        const float RTP = 1.1f;
+        const float RTP = 1.2f;
+        const decimal SCALING_FACTOR = 0.957009m; // = 1 / 1.044922
 
-        /// <summary>
-        /// A dictionary that defines the base payout multipliers for each slot icon in the 3x3 slot machine game.
-        /// The key is a <see cref="ThreeXThreeSlotIcon"/> representing the slot icon, and the value is a decimal
-        /// representing the base payout multiplier for a winning line of that icon.
-        /// </summary>
-        static readonly Dictionary<ThreeXThreeSlotIcon, decimal> BaseLinePayoutMultipliers = new() {
-            { ThreeXThreeSlotIcon.Seven, 30m },
-            { ThreeXThreeSlotIcon.Bar, 20m },
-            { ThreeXThreeSlotIcon.Hotdog, 15m },
-            { ThreeXThreeSlotIcon.Bell, 10m },
-            { ThreeXThreeSlotIcon.Cherry, 8m },
-            { ThreeXThreeSlotIcon.Lemon, 8m },
-            { ThreeXThreeSlotIcon.Orange, 8m },
-            { ThreeXThreeSlotIcon.Plum, 8m },
-            { ThreeXThreeSlotIcon.Rare, 50m },
+        static readonly Dictionary<ClassicSlotIcon, decimal> BaseLinePayoutMultipliers = new() {
+            { ClassicSlotIcon.Seven, 30m * SCALING_FACTOR }, // ≈ 28.7103
+            { ClassicSlotIcon.Bar, 20m * SCALING_FACTOR }, // ≈ 19.1402
+            { ClassicSlotIcon.Hotdog, 15m * SCALING_FACTOR }, // ≈ 14.3551
+            { ClassicSlotIcon.Bell, 10m * SCALING_FACTOR }, // ≈ 9.5701
+            { ClassicSlotIcon.Cherry, 8m * SCALING_FACTOR }, // ≈ 7.6561
+            { ClassicSlotIcon.Lemon, 8m * SCALING_FACTOR }, // ≈ 7.6561
+            { ClassicSlotIcon.Orange, 8m * SCALING_FACTOR }, // ≈ 7.6561
+            { ClassicSlotIcon.Plum, 8m * SCALING_FACTOR }, // ≈ 7.6561
         };
 
-        decimal GetAdjustedLinePayoutMultiplier(ThreeXThreeSlotIcon symbol) =>
-            BaseLinePayoutMultipliers.TryGetValue( symbol, out decimal baseMultiplier ) ? baseMultiplier * (decimal)RTP : 0m;
+        decimal GetAdjustedLinePayoutMultiplier(ClassicSlotIcon symbol) =>
+            BaseLinePayoutMultipliers.TryGetValue( symbol, out decimal baseMultiplier )
+                ? baseMultiplier * (decimal)RTP
+                : 0m;
 
         [SlashCommand( "slots3x3", "Play a 3x3 grid slot machine." )]
         public async Task Slots3X3Async([Summary( description: "Your bet amount" )] float bet) =>
@@ -71,10 +64,10 @@ namespace TCS.HoboBot.Modules.CasinoGames {
             await HandleEndGameAsync();
         }
 
-        protected override ThreeXThreeSlotIcon[][] SpinReelsInternal() {
-            ThreeXThreeSlotIcon[][] grid = new ThreeXThreeSlotIcon[ NumberOfRows ][];
+        protected override ClassicSlotIcon[][] SpinReelsInternal() {
+            ClassicSlotIcon[][] grid = new ClassicSlotIcon[ NumberOfRows ][];
             for (var r = 0; r < NumberOfRows; r++) {
-                grid[r] = new ThreeXThreeSlotIcon[ NumberOfReels ];
+                grid[r] = new ClassicSlotIcon[ NumberOfReels ];
                 for (var c = 0; c < NumberOfReels; c++) {
                     grid[r][c] = GetRandomSymbol();
                 }
@@ -83,66 +76,70 @@ namespace TCS.HoboBot.Modules.CasinoGames {
             return grid;
         }
 
-        protected override (decimal payoutMultiplier, string winDescription) CalculatePayoutInternal(ThreeXThreeSlotIcon[][] grid, float bet) {
+        protected override (decimal payoutMultiplier, string winDescription) CalculatePayoutInternal(
+            ClassicSlotIcon[][] grid, float bet
+        ) {
             var totalBetMultiplier = 0m;
-            List<string> winDescriptionsList = new List<string>();
-            int freeSpinsAwarded = 0;
+            List<string> winDescriptions = [];
 
-            foreach (List<(int r, int c)> linePath in Paylines) {
-                var s1 = grid[linePath[0].r][linePath[0].c];
-                var s2 = grid[linePath[1].r][linePath[1].c];
-                var s3 = grid[linePath[2].r][linePath[2].c];
+            for (var i = 0; i < Paylines.Count; i++) {
+                List<(int r, int c)> path = Paylines[i];
+                var s1 = grid[path[0].r][path[0].c];
+                var s2 = grid[path[1].r][path[1].c];
+                var s3 = grid[path[2].r][path[2].c];
 
                 if ( s1 == s2 && s2 == s3 ) {
-                    decimal lineWinMultiplier = GetAdjustedLinePayoutMultiplier( s1 );
-                    if ( lineWinMultiplier > 0m ) {
-                        totalBetMultiplier += lineWinMultiplier;
-                        winDescriptionsList.Add( $"Line win: {GetEmojiForSymbol( s1 )}{GetEmojiForSymbol( s1 )}{GetEmojiForSymbol( s1 )} ({lineWinMultiplier:0.##}x)" );
-
-                        // only award free spins on three Rares
-                        if ( s1 == ThreeXThreeSlotIcon.Rare )
-                            freeSpinsAwarded += 5;
+                    decimal lineMultiplier = GetAdjustedLinePayoutMultiplier( s1 );
+                    if ( lineMultiplier > 0 ) {
+                        totalBetMultiplier += lineMultiplier;
+                        winDescriptions.Add(
+                            $"Line {i + 1}: {GetEmojiForSymbol( s1 )}{GetEmojiForSymbol( s1 )}{GetEmojiForSymbol( s1 )} ({lineMultiplier:0.##}x)"
+                        );
                     }
                 }
             }
 
-            if ( freeSpinsAwarded > 0 ) {
-                ulong userId = Context.User.Id;
-                if ( ActiveFreeSpins.ContainsKey( userId ) )
-                    ActiveFreeSpins[userId] = (ActiveFreeSpins[userId].spinsRemaining + freeSpinsAwarded, bet);
-                else
-                    ActiveFreeSpins[userId] = (freeSpinsAwarded, bet);
-
-                _ = Context.Channel.SendMessageAsync( $"🎰 {Context.User.Mention} got **{freeSpinsAwarded}** free spins at {bet:C2}!" );
-            }
-
-            return totalBetMultiplier > 0 ? (totalBetMultiplier, string.Join( "\n", winDescriptionsList )) : (0m, "No wins this spin.");
+            return totalBetMultiplier > 0
+                ? (totalBetMultiplier, $"Wins on {winDescriptions.Count} line(s):\n" + string.Join( "\n", winDescriptions ))
+                : (0m, "No winning lines this spin.");
         }
 
-        protected override Embed BuildGameEmbedInternal(SocketUser user, ThreeXThreeSlotIcon[][] grid, float bet, decimal payoutMultiplier, string winDescription, decimal totalWinnings) {
-            var gridDisplay = new StringBuilder();
+        protected override Embed BuildGameEmbedInternal(
+            SocketUser user,
+            ClassicSlotIcon[][] grid,
+            float bet,
+            decimal payoutMultiplier,
+            string winDescription,
+            decimal totalWinnings
+        ) {
+            var sb = new StringBuilder();
             for (var r = 0; r < NumberOfRows; r++) {
                 for (var c = 0; c < NumberOfReels; c++) {
-                    gridDisplay.Append( GetEmojiForSymbol( grid[r][c] ) );
-                    if ( c < NumberOfReels - 1 ) gridDisplay.Append( " | " );
+                    sb.Append( GetEmojiForSymbol( grid[r][c] ) );
+                    if ( c < NumberOfReels - 1 ) sb.Append( " | " );
                 }
 
-                gridDisplay.AppendLine();
+                sb.AppendLine();
             }
 
             decimal profit = totalWinnings - (decimal)bet;
-            string outcomeMessage = payoutMultiplier > 0
-                ? $"You won {profit:C2}! (Total: {totalWinnings:C2})"
-                : $"You lost {bet:C2}.";
+            string outcome;
+            if ( payoutMultiplier == 0m )
+                outcome = $"Unlucky! You lost **{bet:C2}**.";
+            else if ( profit == 0 )
+                outcome = $"Push! Your **{bet:C2}** bet is returned.";
+            else
+                outcome = $"Congratulations! You won **{profit:C2}** (Total: {totalWinnings:C2}).";
 
-            outcomeMessage += $"\nNew balance: {PlayersWallet.GetBalance( user.Id ):C2}";
+            outcome += $"\nYour new balance: **${PlayersWallet.GetBalance(Context.Guild.Id, user.Id ):C2}**";
 
-            return new EmbedBuilder()
+            var embed = new EmbedBuilder()
                 .WithTitle( $"{GameName} – {bet:C2} Bet" )
-                .WithDescription( $"{user.Mention} spins:\n\n{gridDisplay}\n{winDescription}" )
-                .WithFooter( outcomeMessage )
-                .WithColor( profit > 0 ? Color.Green : Color.Red )
-                .Build();
+                .WithDescription( $"{user.Mention} spins the 3×3…\n\n{sb}\n{winDescription}" )
+                .WithFooter( outcome )
+                .WithColor( profit > 0 ? Color.Green : profit == 0 ? Color.LightGrey : Color.Red );
+
+            return embed.Build();
         }
     }
 }
