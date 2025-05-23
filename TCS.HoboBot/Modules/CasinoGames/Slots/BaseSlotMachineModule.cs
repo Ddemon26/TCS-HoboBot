@@ -24,7 +24,7 @@ namespace TCS.HoboBot.Modules.CasinoGames {
         protected abstract Embed BuildGameEmbedInternal(SocketUser user, TSymbol[][] currentSpin, float bet, decimal payoutMultiplier, string winDescription, decimal totalWinnings);
 
         protected string GetEmojiForSymbol(TSymbol symbol) {
-            int symbolIndex = Convert.ToInt32( symbol, CultureInfo.InvariantCulture );
+            var symbolIndex = Convert.ToInt32( symbol, CultureInfo.InvariantCulture );
             if ( symbolIndex >= 0 && symbolIndex < SymbolToEmojiMap.Count ) {
                 return SymbolToEmojiMap[symbolIndex];
             }
@@ -39,8 +39,7 @@ namespace TCS.HoboBot.Modules.CasinoGames {
         protected async Task PlaySlotsAsync(float bet, bool isSpinAgainRequest = false, SocketInteraction? interactionToModify = null) {
             float processingBet = bet; // Use a local variable for processing
             if ( !isSpinAgainRequest ) {
-                string? error;
-                if ( !ValidateBet( ref processingBet, out error ) ) // processingBet might be capped by ValidateBet
+                if ( !ValidateBet( ref processingBet, out string? error ) ) // processingBet might be capped by ValidateBet
                 {
                     await RespondAsync( error, ephemeral: true );
                     return;
@@ -49,7 +48,7 @@ namespace TCS.HoboBot.Modules.CasinoGames {
             else if ( interactionToModify != null ) // This means it's a button interaction for spin again
             {
                 if ( PlayersWallet.GetBalance( Context.User.Id ) < processingBet ) {
-                    string error = $"{Context.User.Mention} doesn't have enough cash for another spin at ${processingBet:0.00}!";
+                    var error = $"{Context.User.Mention} doesn't have enough cash for another spin at ${processingBet:0.00}!";
                     await interactionToModify.ModifyOriginalResponseAsync( m => {
                             m.Content = error;
                             m.Embed = new EmbedBuilder()
@@ -118,8 +117,8 @@ namespace TCS.HoboBot.Modules.CasinoGames {
 
         protected async Task SpinAndRespondAsync(float bet, bool isFollowUpOrButton, SocketInteraction? interactionToModify = null) {
             TSymbol[][] spinResult = SpinReelsInternal();
-            var (payoutMultiplier, winDescription) = CalculatePayoutInternal( spinResult, bet );
-            decimal totalWinningsValue = 0m; // This is the total amount returned for the spin (bet * multiplier)
+            (decimal payoutMultiplier, string winDescription) = CalculatePayoutInternal( spinResult, bet );
+            var totalWinningsValue = 0m; // This is the total amount returned for the spin (bet * multiplier)
 
             if ( payoutMultiplier > 0 ) {
                 totalWinningsValue = (decimal)bet * payoutMultiplier;
@@ -154,7 +153,7 @@ namespace TCS.HoboBot.Modules.CasinoGames {
         }
 
         protected async Task AnnouncePublicWin(SocketUser user, decimal profitAmount) {
-            var msg = $"{user.Mention} wins **{profitAmount:C2}** on {GameName}!";
+            var msg = $"🎰 {user.Mention} wins **{profitAmount:C2}** on {GameName}!";
             await Context.Channel.SendMessageAsync( msg ); // Send as a new message to the channel
         }
     }
