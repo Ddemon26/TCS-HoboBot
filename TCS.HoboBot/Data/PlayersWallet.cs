@@ -10,19 +10,9 @@ public class PlayerWallet {
 }
 
 public static class PlayersWallet {
-    //public static readonly ConcurrentDictionary<ulong, float> Cash = new();
     static readonly ConcurrentDictionary<ulong, ConcurrentDictionary<ulong, float>> GlobalPlayerWallets = new();
     public static readonly ConcurrentDictionary<ulong, ConcurrentDictionary<ulong, PlayerWallet>> PlayerWallets = new();
 
-
-    public static readonly ConcurrentDictionary<ulong, DateTimeOffset> NextBeg = new();
-    public static readonly TimeSpan BegCooldown = TimeSpan.FromSeconds( 5 );
-
-    public static readonly ConcurrentDictionary<ulong, DateTimeOffset> NextJob = new();
-    public static readonly TimeSpan JobCooldown = TimeSpan.FromMinutes( 10 );
-
-    public static readonly ConcurrentDictionary<ulong, DateTimeOffset> NextRob = new();
-    public static readonly TimeSpan RobCooldown = TimeSpan.FromMinutes( 10 );
     static readonly string FilePath = "wallets.json";
     static readonly string FilePath2 = "PlayerWallets.json";
     static string GetFilePath(ulong guildId) {
@@ -36,13 +26,14 @@ public static class PlayersWallet {
         // );
         //
         // return guildWallets.GetValueOrDefault( userId, 0f );
-        
+
         //get from PlayerWallets
         if ( PlayerWallets.TryGetValue( guildId, out ConcurrentDictionary<ulong, PlayerWallet>? playerWallets ) ) {
             if ( playerWallets.TryGetValue( userId, out var playerWallet ) ) {
                 return playerWallet.Cash;
             }
         }
+
         return 0f;
     }
 
@@ -53,7 +44,7 @@ public static class PlayersWallet {
         );
 
         guildWallets[userId] = guildWallets.TryGetValue( userId, out float old ) ? old + amount : amount;
-        
+
         //add to PlayerWallets as well
         if ( PlayerWallets.TryGetValue( guildId, out ConcurrentDictionary<ulong, PlayerWallet>? playerWallets ) ) {
             if ( playerWallets.TryGetValue( userId, out var playerWallet ) ) {
@@ -79,7 +70,7 @@ public static class PlayersWallet {
             : 0f;
 
         guildWallets[userId] = newAmount;
-        
+
         //subtract from PlayerWallets as well
         if ( PlayerWallets.TryGetValue( guildId, out ConcurrentDictionary<ulong, PlayerWallet>? playerWallets ) ) {
             if ( playerWallets.TryGetValue( userId, out var playerWallet ) ) {
@@ -109,7 +100,7 @@ public static class PlayersWallet {
         }
     }
 
-    public static async Task SaveAsync(ulong guildId) {
+    static async Task SaveAsync(ulong guildId) {
         string dir = Path.Combine( "Data", guildId.ToString() );
         Directory.CreateDirectory( dir );
         string path = GetFilePath( guildId );
