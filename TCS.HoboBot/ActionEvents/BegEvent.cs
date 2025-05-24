@@ -1,4 +1,5 @@
 ﻿using System.Security.Cryptography;
+using Newtonsoft.Json;
 namespace TCS.HoboBot.ActionEvents;
 
 public static class ProstitutionEvents {
@@ -66,7 +67,11 @@ public static class WorkEvents {
             () => RandomNumberGenerator.GetInt32( 10, 100 ), // $10.01–100.00
             d => $"A man in a van picks you up like the mexican you are. He gives you **${d:0.00}** for a few hours of work."
         ),
-
+        new(
+            10,
+            () => RandomNumberGenerator.GetInt32( 80, 150 ), // $10.01–100.00
+            d => $"A man in a van picks you up like the mexican you are. He gives you **${d:0.00}** for a few hours of work."
+        ),
         // 2) 20% – ignored
         new(
             1,
@@ -103,6 +108,60 @@ public static class WorkEvents {
         }
 
         return sum;
+    }
+}
+
+public enum DeltaType {
+    Range,
+    Constant,
+}
+
+public class BegEventInfo {
+    public int Weight { get; set; }
+    public DeltaType DeltaType { get; set; }
+    // Used for Range events (values in cents for better precision)
+    public int DeltaMinCents { get; set; }
+    public int DeltaMaxCents { get; set; }
+    // Used for Constant events
+    public float ConstantDelta { get; set; }
+    // A template where "{delta}" will be replaced with the computed delta
+    public string StoryTemplate { get; set; } = string.Empty;
+}
+
+public static class BegEventsLoader {
+    const string FILE_PATH = "beg_events.json";
+    static string GetFilePath( ) => Path.Combine( "Data", "Events", FILE_PATH );
+    public static List<BegEventInfo> LoadBegEvents() {
+        string json = File.ReadAllText( GetFilePath() );
+        List<BegEventInfo>? events = JsonConvert.DeserializeObject<List<BegEventInfo>>( json );
+        return events ?? [];
+    }
+
+    public static (float Delta, string Story) Roll(List<BegEventInfo> events) {
+        var totalWeight = 0;
+        foreach (var ev in events) {
+            totalWeight += ev.Weight;
+        }
+
+        int pick = RandomNumberGenerator.GetInt32( 0, totalWeight );
+        var tally = 0;
+
+        foreach (var ev in events) {
+            tally += ev.Weight;
+            if ( pick < tally ) {
+                float delta = ev.DeltaType switch {
+                    DeltaType.Range =>
+                        RandomNumberGenerator.GetInt32( ev.DeltaMinCents, ev.DeltaMaxCents + 1 ) / 100f,
+                    DeltaType.Constant => ev.ConstantDelta,
+                    _ => 0f,
+                };
+
+                string story = ev.StoryTemplate.Replace( "{delta}", delta.ToString( "0.00" ) );
+                return (delta, story);
+            }
+        }
+
+        return (0f, "Nothing happens… the streets are quiet.");
     }
 }
 
@@ -489,10 +548,10 @@ public static class BegEvents {
 
         foreach (var e in Events) {
             tally += e.Weight;
-            if ( pick < tally ) {
-                float delta = e.Delta();
-                return (delta, e.Story( delta ));
-            }
+            if ( pick >= tally ) continue;
+            
+            float delta = e.Delta();
+            return (delta, e.Story( delta ));
         }
 
         // Should never fall through
