@@ -29,7 +29,7 @@ public class FightPlayerModule : InteractionModuleBase<SocketInteractionContext>
         float bill = Rng.Next( 5, 20 );
 
         if ( win ) {
-            PlayersWallet.SubtractFromBalance( Context.Guild.Id, Context.User.Id, bill );
+            PlayersWallet.SubtractFromBalance( Context.Guild.Id, user.Id, bill );
             await RespondAsync(
                 $"{Context.User.Mention} won the fight against {user.Mention}! \n " +
                 $"{user.Mention} must pay **${bill:0.00}** in medical bills."
