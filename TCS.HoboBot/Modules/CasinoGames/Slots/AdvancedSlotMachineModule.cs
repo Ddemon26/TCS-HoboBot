@@ -49,7 +49,7 @@ namespace TCS.HoboBot.Modules.CasinoGames.Slots {
             { AdvancedSlotIcon.Wild, "🌟" }, { AdvancedSlotIcon.Scatter, "💲" },
         };
 
-        const float RTP = 1.2f; // Adjustable RTP percentage
+        const float RTP = 0.96f; // Adjustable RTP percentage
         // Scale pre-RTP to exactly 100%
         const decimal SCALING_FACTOR = 0.988973m;
 
@@ -327,6 +327,22 @@ namespace TCS.HoboBot.Modules.CasinoGames.Slots {
                 if ( profit > 0 ) {
                     await Context.Channel.SendMessageAsync( $"{Context.User.Mention} wins **{profit:C2}** on Advanced Slots ({rows}x{cols})!" );
                 }
+            }
+            
+            // Announce jackpot wins
+            if ( CasinoManager.GetJackpot( Context.Guild.Id, JackpotType.MegaJackpot, out float jackpot ) ) {
+                var msg = $"🎉 {Context.User.Mention} has hit the **Mega Jackpot** of **{jackpot:C2}** on {commandPrefix}!";
+                await Context.Channel.SendMessageAsync( msg ); // Send as a new message to the channel
+                return;
+            }
+            if ( CasinoManager.GetJackpot( Context.Guild.Id, JackpotType.ProgressiveJackpot, out jackpot ) ) {
+                var msg = $"🎉 {Context.User.Mention} has hit the **Progressive Jackpot** of **{jackpot:C2}** on {commandPrefix}!";
+                await Context.Channel.SendMessageAsync( msg ); // Send as a new message to the channel
+                return;
+            }
+            if ( CasinoManager.GetJackpot( Context.Guild.Id, JackpotType.MiniJackpot, out jackpot ) ) {
+                var msg = $"🎉 {Context.User.Mention} has hit the **Mini Jackpot** of **{jackpot:C2}** on {commandPrefix}!";
+                await Context.Channel.SendMessageAsync( msg ); // Send as a new message to the channel
             }
         }
 
