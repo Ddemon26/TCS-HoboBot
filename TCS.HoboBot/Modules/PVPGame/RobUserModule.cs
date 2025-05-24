@@ -10,15 +10,18 @@ public class RobUserModule : InteractionModuleBase<SocketInteractionContext> {
     public async Task RobAsync(SocketUser target) {
         ulong userId = Context.User.Id;
         var now = DateTimeOffset.UtcNow;
-        // Check if the user can call the command
-        if ( PlayersWallet.NextRob.TryGetValue( userId, out var next ) && now < next ) {
+        var next = Cooldowns.Get(Context.Guild.Id, userId, CooldownKind.Rob);
+        if (now < next)
+        {
             var remaining = next - now;
-            await RespondAsync( $"⏳ You need to wait **{remaining:mm\\:ss}** before robbing again.", ephemeral: true );
+            await RespondAsync(
+                $"⏳ You need to wait **{remaining:mm\\:ss}** before robbing again.",
+                ephemeral: true
+            );
             return;
         }
 
-        // Record the next allowed call time.
-        PlayersWallet.NextRob[userId] = now + PlayersWallet.RobCooldown;
+        Cooldowns.Set(Context.Guild.Id, userId, CooldownKind.Rob,now + Cooldowns.Cooldown( CooldownKind.Rob ));
 
         // Cannot rob yourself.
         if ( target.Id == Context.User.Id ) {
