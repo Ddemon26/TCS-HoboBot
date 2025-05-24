@@ -79,8 +79,9 @@ public static class PlayersProperties {
             _ => new Dictionary<ulong, int[]>()
         );
 
-        if ( !guildProps.TryGetValue( userId, out var idx ) )
+        if ( !guildProps.TryGetValue( userId, out var idx ) ) {
             return Array.Empty<MonopolyProperty>();
+        }
 
         return idx.Select( i => Properties[i] ).ToArray();
     }
@@ -92,8 +93,9 @@ public static class PlayersProperties {
         );
 
         if ( guildProps.TryGetValue( userId, out var idx ) ) {
-            if ( idx.Contains( propertyIndex ) )
+            if ( idx.Contains( propertyIndex ) ) {
                 return; // already owns
+            }
 
             idx = idx.Append( propertyIndex ).ToArray();
         }
@@ -110,8 +112,9 @@ public static class PlayersProperties {
             _ => new Dictionary<ulong, int[]>()
         );
 
-        if ( !guildProps.TryGetValue( userId, out var idx ) || !idx.Contains( propertyIndex ) )
+        if ( !guildProps.TryGetValue( userId, out var idx ) || !idx.Contains( propertyIndex ) ) {
             return; // nothing to remove
+        }
 
         idx = idx.Where( i => i != propertyIndex ).ToArray();
         guildProps[userId] = idx;
