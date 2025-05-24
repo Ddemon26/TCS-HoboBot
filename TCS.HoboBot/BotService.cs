@@ -1,6 +1,7 @@
 using System.Reflection;
 using Discord;
 using Discord.Interactions;
+using Discord.Rest;
 using Discord.WebSocket;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
@@ -61,9 +62,31 @@ public class BotService : IHostedService, IDisposable {
                     Console.WriteLine( $"Guild: {guild.Name} ({guild.Id})" );
                 }
 
-                foreach (ulong groupGuilds in m_guildIds) {
-                    Console.WriteLine( $"Registering to guild {groupGuilds}" );
-                    await m_interactions.RegisterCommandsToGuildAsync( groupGuilds, deleteMissing: true );
+                var restGuildUsers = new Dictionary<ulong, RestGuildUser[]>();
+
+                foreach (ulong guild in m_guildIds) {
+                    Console.WriteLine( $"Registering to guild {guild}" );
+                    await m_interactions.RegisterCommandsToGuildAsync( guild, deleteMissing: true );
+
+                    // 2. hop from the socket world to the REST-only client
+                    var restGuild = await m_client.Rest.GetGuildAsync( guild ); // RestGuild
+
+                    // 3. pull every member in batches of 1 000 and flatten them
+                    IReadOnlyCollection<RestGuildUser> members = (
+                        await restGuild // RestGuild
+                            .GetUsersAsync() // IAsyncEnumerable<[…]>
+                            .FlattenAsync()
+                    ).ToList(); // Convert to IReadOnlyCollection<RestGuildUser>
+
+                    restGuildUsers.Add( guild, members.ToArray() );
+                }
+                
+                //log every username in every guild
+                foreach (KeyValuePair<ulong, RestGuildUser[]> guild in restGuildUsers) {
+                    Console.WriteLine($"Guild: {guild.Key}");
+                    foreach (var user in guild.Value) {
+                        Console.WriteLine($"User: {user.DisplayName} ({user.Id})");
+                    }
                 }
             }
 #pragma warning disable CS0162 // Unreachable code detected
@@ -115,6 +138,8 @@ public class BotService : IHostedService, IDisposable {
         await PlayersStashes.SaveAsync();
         await CasinoManager.SaveAsync();
 
+        //await StaticShitterFile.SaveAsync();
+
         //SlotsManager.AddToJackpots( 1000 );
         // foreach (var guild in m_client.Guilds) {
         //     await PlayersWallet.SaveAsync( guild.Id );
@@ -127,9 +152,11 @@ public class BotService : IHostedService, IDisposable {
 
     async Task LoadDataAsync() {
         await PlayersWallet.LoadAsync( m_client.Guilds );
-        await PlayersProperties.LoadAsync(m_client.Guilds);
-        await PlayersStashes.LoadAsync(m_client.Guilds);
+        await PlayersProperties.LoadAsync( m_client.Guilds );
+        await PlayersStashes.LoadAsync( m_client.Guilds );
         await CasinoManager.LoadAsync( m_client.Guilds );
+
+        //await StaticShitterFile.LoadAsync();
 
 
         // foreach (var guild in m_client.Guilds) {
