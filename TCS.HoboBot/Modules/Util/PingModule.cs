@@ -30,28 +30,24 @@ public class RollModule : InteractionModuleBase<SocketInteractionContext> {
 
 public class TopHoboModule : InteractionModuleBase<SocketInteractionContext> {
     [SlashCommand( "top", "Check the top hobos!" )]
-    // public async Task TopAsync() {
-    //     string result = PlayersWallet.GetTopTenHobos( Context.Guild );
-    //     await RespondAsync( $"Top hobos:\n{result}" );
-    // }
-    
     public async Task TopAsync() {
         // get or create this guild's wallet of PlayerWallets
         ConcurrentDictionary<ulong, PlayerWallet> guildWallets = PlayersWallet.PlayerWallets
-            .GetOrAdd(Context.Guild.Id, _ => new ConcurrentDictionary<ulong, PlayerWallet>());
+            .GetOrAdd( Context.Guild.Id, _ => new ConcurrentDictionary<ulong, PlayerWallet>() );
 
-        // take top 10 users by Cash
-        var topHoboTasks = guildWallets
-            .OrderByDescending(kv => kv.Value.Cash)
-            .Take(10)
-            .Select(async kv => {
-                var user = await Context.Client.Rest.GetUserAsync(kv.Key);
-                string name = user?.GlobalName ?? user?.Username ?? kv.Key.ToString();
-                return $"{name}: ${kv.Value.Cash:0.00}";
-            });
+        // take the top 10 users by Cash
+        IEnumerable<Task<string>> topHoboTasks = guildWallets
+            .OrderByDescending( kv => kv.Value.Cash )
+            .Take( 10 )
+            .Select( async kv => {
+                    var user = await Context.Client.Rest.GetUserAsync( kv.Key );
+                    string name = user?.GlobalName ?? user?.Username ?? kv.Key.ToString();
+                    return $"{name}: ${kv.Value.Cash:0.00}";
+                }
+            );
 
-        var topHobos = await Task.WhenAll(topHoboTasks);
-        await RespondAsync($"Top hobos:\n{string.Join("\n", topHobos)}");
+        string[] topHobos = await Task.WhenAll( topHoboTasks );
+        await RespondAsync( $"Top hobos:\n{string.Join( "\n", topHobos )}" );
     }
 }
 
@@ -67,15 +63,14 @@ public class BalanceModule : InteractionModuleBase<SocketInteractionContext> {
 }
 
 public class ProstituteModule : InteractionModuleBase<SocketInteractionContext> {
-    public static readonly ConcurrentDictionary<ulong, DateTimeOffset> NextProstitution = new();
-    public static readonly TimeSpan ProstitutionCooldown = TimeSpan.FromMinutes( 30 );
     [SlashCommand( "prostitute", "Prostitute yourself for money!" )]
     public async Task ProstituteAsync() {
         ulong userId = Context.User.Id;
         var now = DateTimeOffset.UtcNow;
 
         // Cool-down check
-        if ( NextProstitution.TryGetValue( userId, out var next ) && now < next ) {
+        var next = Cooldowns.Get( Context.Guild.Id, userId, CooldownKind.Prostitution );
+        if ( now < next ) {
             var remaining = next - now;
             await RespondAsync(
                 $"⏳ Easy there, hobo! Try again in **{remaining:mm\\:ss}**.",
@@ -99,7 +94,7 @@ public class ProstituteModule : InteractionModuleBase<SocketInteractionContext> 
         float newBalance = PlayersWallet.GetBalance( Context.Guild.Id, userId );
 
         // Record next allowed to beg time
-        NextProstitution[userId] = now + ProstitutionCooldown;
+        Cooldowns.Set( Context.Guild.Id, userId, CooldownKind.Prostitution, now + Cooldowns.Cooldown( CooldownKind.Prostitution ) );
 
         // ---------------- Reply ----------------
         string deltaText = delta switch {
@@ -122,7 +117,8 @@ public class BegModule : InteractionModuleBase<SocketInteractionContext> {
         var now = DateTimeOffset.UtcNow;
 
         // Cool-down check
-        if ( PlayersWallet.NextBeg.TryGetValue( userId, out var next ) && now < next ) {
+        var next = Cooldowns.Get( Context.Guild.Id, userId, CooldownKind.Beg );
+        if ( now < next ) {
             var remaining = next - now;
             await RespondAsync(
                 $"⏳ Easy there, hobo! Try again in **{remaining:mm\\:ss}**.",
@@ -145,7 +141,7 @@ public class BegModule : InteractionModuleBase<SocketInteractionContext> {
         float newBalance = PlayersWallet.GetBalance( Context.Guild.Id, userId );
 
         // Record next allowed to beg time
-        PlayersWallet.NextBeg[userId] = now + PlayersWallet.BegCooldown;
+        Cooldowns.Set( Context.Guild.Id, userId, CooldownKind.Beg, now + Cooldowns.Cooldown( CooldownKind.Beg ) );
 
         // ---------------- Reply ----------------
         string deltaText = delta switch {
@@ -168,7 +164,9 @@ public class WorkModule : InteractionModuleBase<SocketInteractionContext> {
         var now = DateTimeOffset.UtcNow;
 
         // Cool-down check
-        if ( PlayersWallet.NextJob.TryGetValue( userId, out var next ) && now < next ) {
+// Get the next allowed time using the new method.
+        var next = Cooldowns.Get( Context.Guild.Id, userId, CooldownKind.Job );
+        if ( now < next ) {
             var remaining = next - now;
             await RespondAsync(
                 $"⏳ Easy there, hobo! Try again in **{remaining:mm\\:ss}**.",
@@ -191,7 +189,7 @@ public class WorkModule : InteractionModuleBase<SocketInteractionContext> {
         float newBalance = PlayersWallet.GetBalance( Context.Guild.Id, userId );
 
         // Record next allowed to beg time
-        PlayersWallet.NextJob[userId] = now + PlayersWallet.JobCooldown;
+        Cooldowns.Set( Context.Guild.Id, userId, CooldownKind.Job, now + Cooldowns.Cooldown( CooldownKind.Job ) );
 
         // ---------------- Reply ----------------
         string deltaText = delta switch {
