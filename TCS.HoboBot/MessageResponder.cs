@@ -83,6 +83,11 @@ namespace TCS.HoboBot {
                 await msg.Channel.SendMessageAsync( "Redux is gay." );
                 return;
             }
+
+            if ( msg.Content.Contains( "Hayko", StringComparison.OrdinalIgnoreCase ) ) {
+                await msg.Channel.SendMessageAsync( "5 foot 4 and a total whore" );
+                return;
+            }
         }
 
         // ──────────────────────────────────────────────────────────────────────
