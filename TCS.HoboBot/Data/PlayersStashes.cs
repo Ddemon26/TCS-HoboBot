@@ -32,9 +32,9 @@ public static class PlayersStashes {
     public static readonly TimeSpan CookCooldown = TimeSpan.FromMinutes( 30 );
 
     static readonly string FilePath = "playerStashes.json";
+    static string GetFilePath(ulong guildId) => Path.Combine( "Data", guildId.ToString(), FilePath );
 
     static readonly ConcurrentDictionary<ulong, Dictionary<ulong, PlayerStash>> GlobalStashCache = new();
-    static string GetFilePath(ulong guildId) => Path.Combine( "Data", guildId.ToString(), FilePath );
 
     public static float GetPriceByType(DrugType type) {
         return type switch {
@@ -68,7 +68,10 @@ public static class PlayersStashes {
             _ => new Dictionary<ulong, PlayerStash>()
         );
 
-        if ( guildStashes.TryGetValue( userId, out var stash ) ) return stash;
+        if ( guildStashes.TryGetValue( userId, out var stash ) ) {
+            return stash;
+        }
+
         stash = new PlayerStash();
         guildStashes[userId] = stash;
 
@@ -105,8 +108,9 @@ public static class PlayersStashes {
         string dir = Path.Combine( "Data", guildId.ToString() );
         Directory.CreateDirectory( dir );
         string path = GetFilePath( guildId );
-        if ( !GlobalStashCache.TryGetValue( guildId, out Dictionary<ulong, PlayerStash>? guildStashes ) )
+        if ( !GlobalStashCache.TryGetValue( guildId, out Dictionary<ulong, PlayerStash>? guildStashes ) ) {
             guildStashes = new Dictionary<ulong, PlayerStash>();
+        }
 
         string json = Serialize( guildStashes );
         await File.WriteAllTextAsync( path, json );
