@@ -98,7 +98,10 @@ public static class WorkEvents {
 
     static int ComputeTotalWeight() {
         var sum = 0;
-        foreach (var e in Events) sum += e.Weight;
+        foreach (var e in Events) {
+            sum += e.Weight;
+        }
+
         return sum;
     }
 }
