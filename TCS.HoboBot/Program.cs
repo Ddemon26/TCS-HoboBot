@@ -4,6 +4,7 @@ using Discord.Interactions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using TCS.HoboBot;
+using TCS.HoboBot.YoutubeMusic;
 
 var host = Host.CreateDefaultBuilder(args)
     .ConfigureServices((_, services) =>
@@ -12,11 +13,12 @@ var host = Host.CreateDefaultBuilder(args)
 
         var discordConfig = new DiscordSocketConfig
         {
-            GatewayIntents = GatewayIntents.Guilds |
-                             GatewayIntents.GuildMessages |
-                             GatewayIntents.MessageContent |
-                             GatewayIntents.GuildIntegrations |
-                             GatewayIntents.GuildMembers
+            GatewayIntents = GatewayIntents.Guilds
+                             | GatewayIntents.GuildMessages
+                             | GatewayIntents.MessageContent
+                             | GatewayIntents.GuildIntegrations 
+                             | GatewayIntents.GuildMembers 
+                             | GatewayIntents.GuildVoiceStates
         };
         services.AddSingleton(discordConfig);
         services.AddSingleton<DiscordSocketClient>();
@@ -25,14 +27,20 @@ var host = Host.CreateDefaultBuilder(args)
         {
             LogLevel = LogSeverity.Info,
             UseCompiledLambda = true,
-            DefaultRunMode = RunMode.Async
+            DefaultRunMode = RunMode.Async,
         };
         services.AddSingleton(sp =>
             new InteractionService(sp.GetRequiredService<DiscordSocketClient>(), interactionConfig));
+        
+        // My Custom Entry Points
 
         services.AddHostedService<BotService>();
+        
         services.AddHostedService<MessageResponder>();
+        
         services.AddHostedService<RoleService>();
+        
+        //services.AddHostedService<MusicService>();
     })
     .UseConsoleLifetime() // registers Ctrl+C/SIGTERM handlers
     .Build();
