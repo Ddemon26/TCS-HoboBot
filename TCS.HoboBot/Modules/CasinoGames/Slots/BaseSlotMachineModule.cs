@@ -153,6 +153,22 @@ namespace TCS.HoboBot.Modules.CasinoGames {
                     await AnnouncePublicWin( Context.User, profitAmount );
                 }
             }
+            
+            // Announce jackpot wins
+            if ( CasinoManager.GetJackpot( Context.Guild.Id, JackpotType.MegaJackpot, out float jackpot ) ) {
+                var msg = $"🎉 {Context.User.Mention} has hit the **Mega Jackpot** of **{jackpot:C2}** on {GameName}!";
+                await Context.Channel.SendMessageAsync( msg ); // Send as a new message to the channel
+                return;
+            }
+            if ( CasinoManager.GetJackpot( Context.Guild.Id, JackpotType.ProgressiveJackpot, out jackpot ) ) {
+                var msg = $"🎉 {Context.User.Mention} has hit the **Progressive Jackpot** of **{jackpot:C2}** on {GameName}!";
+                await Context.Channel.SendMessageAsync( msg ); // Send as a new message to the channel
+                return;
+            }
+            if ( CasinoManager.GetJackpot( Context.Guild.Id, JackpotType.MiniJackpot, out jackpot ) ) {
+                var msg = $"🎉 {Context.User.Mention} has hit the **Mini Jackpot** of **{jackpot:C2}** on {GameName}!";
+                await Context.Channel.SendMessageAsync( msg ); // Send as a new message to the channel
+            }
         }
 
         protected async Task AnnouncePublicWin(SocketUser user, decimal profitAmount) {
