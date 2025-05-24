@@ -18,41 +18,107 @@ public static class DiscordGuildMemberCache {
             .FirstOrDefault( member => member.Id == userId ) : null;
 }
 
+public enum JackpotType {
+    MegaJackpot,
+    ProgressiveJackpot,
+    MiniJackpot,
+}
+
 public static class CasinoManager {
     public class JackPots {
         public ulong GuildId { get; set; }
-        public float MegaJackpot { get; set; }
-        public float ProgressiveJackpot { get; set; }
-        public float MiniJackpot { get; set; }
+        public float SlotsMegaJackpot { get; set; }
+        public float SlotProgressiveJackpot { get; set; }
+        public float SlotMiniJackpot { get; set; }
+        
+        public override string ToString() {
+            return $"**Current Jackpots**\n" +
+                   $" Mega: {SlotsMegaJackpot}\n" +
+                   $" Progressive: {SlotProgressiveJackpot}\n" +
+                   $" Mini: {SlotMiniJackpot}";
+        }
     }
+    
+    static readonly Random Rng = new();
 
-    static readonly ConcurrentDictionary<ulong, JackPots> JackPotsCache = new();
+    public static readonly ConcurrentDictionary<ulong, JackPots> JackPotsCache = new();
 
-    public const float MEGA_CHANCE = 0.0001f;
-    public const float PROGRESSIVE_CHANCE = 0.001f;
-    public const float MINI_CHANCE = 0.01f;
+    // public const float MEGA_CHANCE = 0.0001f; // 1 in 1,000,000
+    // public const float PROGRESSIVE_CHANCE = 0.001f; // 1 in 100,000
+    // public const float MINI_CHANCE = 0.01f; // 1 in 10,000
+
+    public const float MEGA_CHANCE = 0.001f; // 1 in 100,000
+    public const float PROGRESSIVE_CHANCE = 0.01f; // 1 in 10,000
+    public const float MINI_CHANCE = 0.1f; // 1 in 1,000
+
+    // public const float MEGA_CHANCE = 10f; // 1 in 10
+    // public const float PROGRESSIVE_CHANCE = 25f; // 1 in 4
+    // public const float MINI_CHANCE = 50f; // 1 in 2
 
     const string FILE_PATH = "jackpots.json";
     static string GetFilePath(ulong guildId) => Path.Combine( "Data", guildId.ToString(), FILE_PATH );
 
     public static void AddToSlotsJackpots(ulong guildId, float amount) {
+        float cutAmount = amount * 0.5f;
         if ( JackPotsCache.TryGetValue( guildId, out var jackpots ) ) {
             jackpots.GuildId = guildId;
-            jackpots.MegaJackpot += amount * 0.5f;
-            jackpots.ProgressiveJackpot += amount * 0.3f;
-            jackpots.MiniJackpot += amount * 0.2f;
+            jackpots.SlotsMegaJackpot += cutAmount * 0.5f;
+            jackpots.SlotProgressiveJackpot += cutAmount * 0.3f;
+            jackpots.SlotMiniJackpot += cutAmount * 0.2f;
 
         }
         else {
             JackPotsCache[guildId] = new JackPots {
                 GuildId = guildId,
-                MegaJackpot = amount * 0.5f,
-                ProgressiveJackpot = amount * 0.3f,
-                MiniJackpot = amount * 0.2f,
+                SlotsMegaJackpot = cutAmount * 0.5f,
+                SlotProgressiveJackpot = cutAmount * 0.3f,
+                SlotMiniJackpot = cutAmount * 0.2f,
             };
         }
     }
 
+    public static bool GetJackpot(ulong guildId, JackpotType type, out float jackpot) {
+        if ( JackPotsCache.TryGetValue( guildId, out var jackpots ) ) {
+            float chance = type switch {
+                JackpotType.MegaJackpot => MEGA_CHANCE,
+                JackpotType.ProgressiveJackpot => PROGRESSIVE_CHANCE,
+                JackpotType.MiniJackpot => MINI_CHANCE,
+                _ => 0f,
+            };
+
+            double roll = Rng.NextDouble() * 100;
+            if ( roll < chance ) {
+                jackpot = type switch {
+                    JackpotType.MegaJackpot => jackpots.SlotsMegaJackpot,
+                    JackpotType.ProgressiveJackpot => jackpots.SlotProgressiveJackpot,
+                    JackpotType.MiniJackpot => jackpots.SlotMiniJackpot,
+                    _ => 0f,
+                };
+
+                // Reset the jackpot value after winning
+                switch (type) {
+                    case JackpotType.MegaJackpot:
+                        jackpots.SlotsMegaJackpot = 0;
+                        break;
+                    case JackpotType.ProgressiveJackpot:
+                        jackpots.SlotProgressiveJackpot = 0;
+                        break;
+                    case JackpotType.MiniJackpot:
+                        jackpots.SlotMiniJackpot = 0;
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException( nameof(type), type, null );
+                }
+
+                return true;
+            }
+        }
+
+        jackpot = 0f;
+        return false;
+    }
+
+    #region Save/Load
     // we are given our guild id when saving the jackpots
     public static async Task SaveAsync() {
         foreach ((ulong guildId, var jackpots) in JackPotsCache) {
@@ -101,4 +167,5 @@ public static class CasinoManager {
     static string Serialize<T>(T value) => JsonConvert.SerializeObject( value, WriteSettings );
 
     static T? Deserialize<T>(string json) => JsonConvert.DeserializeObject<T>( json, ReadSettings );
+    #endregion
 }
