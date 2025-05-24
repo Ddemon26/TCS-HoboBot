@@ -33,7 +33,7 @@ public readonly record struct RoleSpec(
 public sealed class RoleService : IHostedService, IDisposable {
     /*── canonical spec list – tweak to taste ──*/
     static readonly RoleSpec[] Specs = [
-        new RoleSpec( DealerRole.LowLevelDealer, "LowLevelDealer", GuildPermissions.None, new Color( 0x3498db ) ),
+        new(DealerRole.LowLevelDealer, "LowLevelDealer", GuildPermissions.None, new Color( 0x3498db )),
         new(DealerRole.PettyDrugDealer, "PettyDrugDealer", GuildPermissions.None, new Color( 0x2ecc71 )),
         new(DealerRole.StreetDealer, "StreetDealer", GuildPermissions.None, new Color( 0x95a5a6 )),
         new(DealerRole.Pimp, "Pimp", GuildPermissions.None, new Color( 0xe67e22 )),
@@ -120,8 +120,9 @@ public sealed class RoleService : IHostedService, IDisposable {
         => EnsureRolesAsync( guild, m_cts.Token );
 
     async Task OnReadyAsync() {
-        foreach (var g in m_client.Guilds)
+        foreach (var g in m_client.Guilds) {
             await EnsureRolesAsync( g, m_cts.Token );
+        }
     }
 
     static async Task SyncAttributesAsync(IRole role, RoleSpec spec, CancellationToken ct) {
