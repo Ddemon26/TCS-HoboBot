@@ -47,7 +47,7 @@ public class PokerPlayerModule : InteractionModuleBase<SocketInteractionContext>
             return;
         }
 
-        if ( PlayersWallet.GetBalance( Context.Guild.Id, Context.User.Id ) < bet ) {
+        if ( PlayersWallet.GetBalance(Context.Guild.Id,  user.Id ) < bet ) {
             await RespondAsync( $"{user.GlobalName} doesn't have enough cash!", ephemeral: true );
             return;
         }
@@ -63,17 +63,17 @@ public class PokerPlayerModule : InteractionModuleBase<SocketInteractionContext>
         string result;
         if ( playerRank < opponentRank ) {
             PlayersWallet.AddToBalance( Context.Guild.Id, Context.User.Id, bet );
-            PlayersWallet.SubtractFromBalance( Context.Guild.Id, Context.User.Id, bet );
+            PlayersWallet.SubtractFromBalance(Context.Guild.Id,  user.Id, bet );
             result = $"{Context.User.Mention} wins! (+${bet:0.00})\n" +
-                     $"New balances: {Context.User.Mention}: ${PlayersWallet.GetBalance( Context.Guild.Id, Context.User.Id ):0.00}, " +
-                     $"{user.Mention}: ${PlayersWallet.GetBalance( Context.Guild.Id, Context.User.Id ):0.00}";
+                     $"New balances: {Context.User.Mention}: ${PlayersWallet.GetBalance(Context.Guild.Id,  Context.User.Id ):0.00}, " +
+                     $"{user.Mention}: ${PlayersWallet.GetBalance(Context.Guild.Id,  user.Id ):0.00}";
         }
         else if ( playerRank > opponentRank ) {
-            PlayersWallet.AddToBalance( Context.Guild.Id, Context.User.Id, bet );
+            PlayersWallet.AddToBalance(Context.Guild.Id,  user.Id, bet );
             PlayersWallet.SubtractFromBalance( Context.Guild.Id, Context.User.Id, bet );
             result = $"{user.Mention} wins! (+${bet:0.00})\n" +
                      $"New balances: {Context.User.Mention}: ${PlayersWallet.GetBalance( Context.Guild.Id, Context.User.Id ):0.00}, " +
-                     $"{user.Mention}: ${PlayersWallet.GetBalance( Context.Guild.Id, Context.User.Id ):0.00}";
+                     $"{user.Mention}: ${PlayersWallet.GetBalance(Context.Guild.Id,  user.Id ):0.00}";
         }
         else {
             result = "It's a tie! No money changes hands.";
@@ -109,8 +109,8 @@ public class PokerPlayerModule : InteractionModuleBase<SocketInteractionContext>
         return "Red"; // Fallback (should never hit)
     }
 
-    int EvaluateHand(IList<string> hand) {
-        // Auto‑win if hand contains black or white
+    static int EvaluateHand(List<string> hand) {
+        // Auto‑win if the hand contains black or white
         if ( hand.Contains( "Black" ) || hand.Contains( "White" ) ) {
             return 0;
         }
@@ -119,12 +119,12 @@ public class PokerPlayerModule : InteractionModuleBase<SocketInteractionContext>
         int[] groups = hand.GroupBy( c => c ).Select( g => g.Count() ).OrderByDescending( c => c ).ToArray();
 
         return groups switch {
-            var g when g[0] == 5 => 1, // 5‑oak
-            var g when g[0] == 4 => 2, // 4‑oak
-            var g when g[0] == 3 && g[1] == 2 => 3, // Full House
-            var g when g[0] == 3 => 4, // 3‑oak
-            var g when g[0] == 2 && g[1] == 2 => 5, // Two Pair
-            var g when g[0] == 2 => 6, // One Pair
+            _ when groups[0] == 5 => 1, // 5‑oak
+            _ when groups[0] == 4 => 2, // 4‑oak
+            _ when groups[0] == 3 && groups[1] == 2 => 3, // Full House
+            _ when groups[0] == 3 => 4, // 3‑oak
+            _ when groups[0] == 2 && groups[1] == 2 => 5, // Two Pairs
+            _ when groups[0] == 2 => 6, // One Pair
             _ => 7, // Bust
         };
     }
@@ -141,6 +141,6 @@ public class PokerPlayerModule : InteractionModuleBase<SocketInteractionContext>
         _ => "Unknown",
     };
 
-    static string FormatHand(IEnumerable<string> hand) =>
-        string.Join( " ", hand.Select( c => FlowerIcons.GetValueOrDefault( c, c ) ) );
+    static string FormatHand(IEnumerable<string> hand) 
+        => string.Join( " ", hand.Select( c => FlowerIcons.GetValueOrDefault( c, c ) ) );
 }
