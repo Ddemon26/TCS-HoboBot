@@ -18,7 +18,7 @@ var host = Host.CreateDefaultBuilder(args)
                              | GatewayIntents.MessageContent
                              | GatewayIntents.GuildIntegrations 
                              | GatewayIntents.GuildMembers 
-                             | GatewayIntents.GuildVoiceStates
+                             | GatewayIntents.GuildVoiceStates,
         };
         services.AddSingleton(discordConfig);
         services.AddSingleton<DiscordSocketClient>();
