@@ -4,9 +4,16 @@ using Discord.WebSocket;
 
 namespace TCS.HoboBot.Data;
 
+public class PlayerWallet {
+    public string UserName { get; set; } = string.Empty;
+    public float Cash { get; set; }
+}
+
 public static class PlayersWallet {
     //public static readonly ConcurrentDictionary<ulong, float> Cash = new();
-    static readonly ConcurrentDictionary<ulong, Dictionary<ulong, float>> GlobalPlayerWallets = new();
+    static readonly ConcurrentDictionary<ulong, ConcurrentDictionary<ulong, float>> GlobalPlayerWallets = new();
+    public static readonly ConcurrentDictionary<ulong, ConcurrentDictionary<ulong, PlayerWallet>> PlayerWallets = new();
+
 
     public static readonly ConcurrentDictionary<ulong, DateTimeOffset> NextBeg = new();
     public static readonly TimeSpan BegCooldown = TimeSpan.FromSeconds( 5 );
@@ -17,41 +24,54 @@ public static class PlayersWallet {
     public static readonly ConcurrentDictionary<ulong, DateTimeOffset> NextRob = new();
     public static readonly TimeSpan RobCooldown = TimeSpan.FromMinutes( 10 );
     static readonly string FilePath = "wallets.json";
+    static readonly string FilePath2 = "PlayerWallets.json";
     static string GetFilePath(ulong guildId) {
         return Path.Combine( "Data", guildId.ToString(), FilePath );
     }
 
     public static float GetBalance(ulong guildId, ulong userId) {
-        Dictionary<ulong, float> guildWallets = GlobalPlayerWallets.GetOrAdd(
-            guildId,
-            _ => new Dictionary<ulong, float>()
-        );
-
-        return guildWallets.GetValueOrDefault( userId, 0f );
-    }
-
-    public static void SetBalance(ulong guildId, ulong userId, float amount) {
-        Dictionary<ulong, float> guildWallets = GlobalPlayerWallets.GetOrAdd(
-            guildId,
-            _ => new Dictionary<ulong, float>()
-        );
-
-        guildWallets[userId] = amount;
+        // ConcurrentDictionary<ulong, float> guildWallets = GlobalPlayerWallets.GetOrAdd(
+        //     guildId,
+        //     _ => new ConcurrentDictionary<ulong, float>()
+        // );
+        //
+        // return guildWallets.GetValueOrDefault( userId, 0f );
+        
+        //get from PlayerWallets
+        if ( PlayerWallets.TryGetValue( guildId, out ConcurrentDictionary<ulong, PlayerWallet>? playerWallets ) ) {
+            if ( playerWallets.TryGetValue( userId, out var playerWallet ) ) {
+                return playerWallet.Cash;
+            }
+        }
+        return 0f;
     }
 
     public static void AddToBalance(ulong guildId, ulong userId, float amount) {
-        Dictionary<ulong, float> guildWallets = GlobalPlayerWallets.GetOrAdd(
+        ConcurrentDictionary<ulong, float> guildWallets = GlobalPlayerWallets.GetOrAdd(
             guildId,
-            _ => new Dictionary<ulong, float>()
+            _ => new ConcurrentDictionary<ulong, float>()
         );
 
         guildWallets[userId] = guildWallets.TryGetValue( userId, out float old ) ? old + amount : amount;
+        
+        //add to PlayerWallets as well
+        if ( PlayerWallets.TryGetValue( guildId, out ConcurrentDictionary<ulong, PlayerWallet>? playerWallets ) ) {
+            if ( playerWallets.TryGetValue( userId, out var playerWallet ) ) {
+                playerWallet.Cash += amount;
+            }
+            else {
+                playerWallet = new PlayerWallet {
+                    Cash = amount,
+                };
+                playerWallets[userId] = playerWallet;
+            }
+        }
     }
 
     public static void SubtractFromBalance(ulong guildId, ulong userId, float amount) {
-        Dictionary<ulong, float> guildWallets = GlobalPlayerWallets.GetOrAdd(
+        ConcurrentDictionary<ulong, float> guildWallets = GlobalPlayerWallets.GetOrAdd(
             guildId,
-            _ => new Dictionary<ulong, float>()
+            _ => new ConcurrentDictionary<ulong, float>()
         );
 
         float newAmount = guildWallets.TryGetValue( userId, out float old )
@@ -59,66 +79,32 @@ public static class PlayersWallet {
             : 0f;
 
         guildWallets[userId] = newAmount;
+        
+        //subtract from PlayerWallets as well
+        if ( PlayerWallets.TryGetValue( guildId, out ConcurrentDictionary<ulong, PlayerWallet>? playerWallets ) ) {
+            if ( playerWallets.TryGetValue( userId, out var playerWallet ) ) {
+                playerWallet.Cash = MathF.Max( 0f, playerWallet.Cash - amount );
+            }
+        }
     }
 
     public static void ResetBalance(ulong guildId, ulong userId) {
-        Dictionary<ulong, float> guildWallets = GlobalPlayerWallets.GetOrAdd(
+        ConcurrentDictionary<ulong, float> guildWallets = GlobalPlayerWallets.GetOrAdd(
             guildId,
-            _ => new Dictionary<ulong, float>()
+            _ => new ConcurrentDictionary<ulong, float>()
         );
 
         guildWallets[userId] = 0f;
     }
 
     public static void ResetAllBalances(ulong guildId) {
-        if ( GlobalPlayerWallets.TryGetValue( guildId, out Dictionary<ulong, float>? guildWallets ) )
+        if ( GlobalPlayerWallets.TryGetValue( guildId, out ConcurrentDictionary<ulong, float>? guildWallets ) ) {
             guildWallets.Clear();
-    }
-    
-    public static string GetTopTenHobos(ulong guildId)
-    {   
-        Dictionary<ulong, float> guildWallets = GlobalPlayerWallets.GetOrAdd(
-            guildId,
-            _ => new Dictionary<ulong, float>()
-        );
-    
-        string[] topHobos = guildWallets
-            .OrderByDescending(kv => kv.Value)
-            .Take(10)
-            .Select(kv => $"{kv.Key}: ${kv.Value:0.00}")
-            .ToArray();
-    
-        string result = string.Join("\n", topHobos);
-        return result;
-    }
-
-    /*public static async Task LoadAsync() {
-        if ( File.Exists( FilePath ) ) {
-            string json = await File.ReadAllTextAsync( FilePath );
-            ConcurrentDictionary<ulong, float>? loaded = Deserialize<ConcurrentDictionary<ulong, float>>( json );
-            if ( loaded != null ) {
-                foreach (KeyValuePair<ulong, float> kv in loaded) {
-                    Cash[kv.Key] = kv.Value;
-                }
-            }
         }
     }
-
-    public static async Task LoadAsync(ulong guildId) {
-        string path = GetFilePath( guildId );
-        if ( File.Exists( path ) ) {
-            string json = await File.ReadAllTextAsync( path );
-            ConcurrentDictionary<ulong, float>? loaded = Deserialize<ConcurrentDictionary<ulong, float>>( json );
-            if ( loaded != null ) {
-                foreach (KeyValuePair<ulong, float> kv in loaded) {
-                    Cash[kv.Key] = kv.Value;
-                }
-            }
-        }
-    }*/
 
     public static async Task SaveAsync() {
-        foreach (KeyValuePair<ulong, Dictionary<ulong, float>> kv in GlobalPlayerWallets) {
+        foreach (KeyValuePair<ulong, ConcurrentDictionary<ulong, float>> kv in GlobalPlayerWallets) {
             await SaveAsync( kv.Key );
         }
     }
@@ -128,12 +114,40 @@ public static class PlayersWallet {
         Directory.CreateDirectory( dir );
         string path = GetFilePath( guildId );
 
-        if ( !GlobalPlayerWallets.TryGetValue( guildId, out Dictionary<ulong, float>? guildWallets ) ) {
-            guildWallets = new Dictionary<ulong, float>();
+        if ( !GlobalPlayerWallets.TryGetValue( guildId, out ConcurrentDictionary<ulong, float>? guildWallets ) ) {
+            guildWallets = new ConcurrentDictionary<ulong, float>();
         }
 
         string json = Serialize( guildWallets );
         await File.WriteAllTextAsync( path, json );
+
+        // string path2 = Path.Combine( "Data", guildId.ToString(), FilePath2 );
+        // if ( !PlayerWallets.TryGetValue( guildId, out ConcurrentDictionary<ulong, PlayerWallet>? guildWallets2 ) ) {
+        //     guildWallets2 = new ConcurrentDictionary<ulong, PlayerWallet>();  
+        // }
+        //
+        // string json2 = Serialize( guildWallets2 );
+        // await File.WriteAllTextAsync( path2, json2 );
+
+        // migrate raw floats into PlayerWallets
+        ConcurrentDictionary<ulong, float> floatWallets = GlobalPlayerWallets.GetOrAdd( guildId, _ => new ConcurrentDictionary<ulong, float>() );
+        ConcurrentDictionary<ulong, PlayerWallet> migrated = new(
+            floatWallets.Select( kv => new KeyValuePair<ulong, PlayerWallet>(
+                                     kv.Key,
+                                     new PlayerWallet {
+                                         Cash = kv.Value,
+                                     }
+                                 )
+            )
+        );
+
+// replace or fill the PlayerWallets entry
+        PlayerWallets[guildId] = migrated;
+
+// now serialize and save as before
+        string path2 = Path.Combine( "Data", guildId.ToString(), FilePath2 );
+        string json2 = Serialize( migrated );
+        await File.WriteAllTextAsync( path2, json2 );
     }
 
     public static async Task LoadAsync(IReadOnlyCollection<SocketGuild> clientGuilds) {
@@ -149,12 +163,22 @@ public static class PlayersWallet {
             }
 
             string json = await File.ReadAllTextAsync( path );
-            Dictionary<ulong, float>? loaded = Deserialize<Dictionary<ulong, float>>( json );
+            ConcurrentDictionary<ulong, float>? loaded = Deserialize<ConcurrentDictionary<ulong, float>>( json );
             if ( loaded is null ) {
                 continue;
             }
 
             GlobalPlayerWallets[guild.Id] = loaded;
+
+            string path2 = Path.Combine( root, guild.Id.ToString(), FilePath2 );
+
+            string json2 = await File.ReadAllTextAsync( path2 );
+            ConcurrentDictionary<ulong, PlayerWallet>? loaded2 = Deserialize<ConcurrentDictionary<ulong, PlayerWallet>>( json2 );
+            if ( loaded2 is null ) {
+                continue;
+            }
+
+            PlayerWallets[guild.Id] = loaded2;
         }
     }
 
