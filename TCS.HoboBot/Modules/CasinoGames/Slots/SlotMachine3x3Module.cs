@@ -116,7 +116,9 @@ namespace TCS.HoboBot.Modules.CasinoGames {
             for (var r = 0; r < NumberOfRows; r++) {
                 for (var c = 0; c < NumberOfReels; c++) {
                     sb.Append( GetEmojiForSymbol( grid[r][c] ) );
-                    if ( c < NumberOfReels - 1 ) sb.Append( " | " );
+                    if ( c < NumberOfReels - 1 ) {
+                        sb.Append( " | " );
+                    }
                 }
 
                 sb.AppendLine();
@@ -124,12 +126,15 @@ namespace TCS.HoboBot.Modules.CasinoGames {
 
             decimal profit = totalWinnings - (decimal)bet;
             string outcome;
-            if ( payoutMultiplier == 0m )
+            if ( payoutMultiplier == 0m ) {
                 outcome = $"Unlucky! You lost **{bet:C2}**.";
-            else if ( profit == 0 )
+            }
+            else if ( profit == 0 ) {
                 outcome = $"Push! Your **{bet:C2}** bet is returned.";
-            else
+            }
+            else {
                 outcome = $"Congratulations! You won **{profit:C2}** (Total: {totalWinnings:C2}).";
+            }
 
             outcome += $"\nYour new balance: **${PlayersWallet.GetBalance(Context.Guild.Id, user.Id ):C2}**";
 
