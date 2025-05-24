@@ -87,6 +87,21 @@ public sealed class MusicModule : InteractionModuleBase<SocketInteractionContext
             if ( GuildAudioData.TryRemove( guildId, out var gone ) ) {
                 await gone.DisposeAsync();
             }
+
+            // When the queue is fully drained, schedule an idle timeout disconnect:
+            var idleTimeout = TimeSpan.FromMinutes( 5 ); // ← whatever idle period you like
+            _ = Task.Run( async () => {
+                    await Task.Delay( idleTimeout );
+
+                    // Only disconnect if no new items were enqueued in the meantime:
+                    if ( GuildAudioData.TryGetValue( guildId, out var stillHere ) &&
+                         stillHere.Queue.IsEmpty ) {
+                        if ( GuildAudioData.TryRemove( guildId, out var audio ) ) {
+                            await audio.DisposeAsync();
+                        }
+                    }
+                }
+            );
         }
         finally {
             ga.LoopGate.Release();
@@ -141,6 +156,16 @@ public sealed class MusicModule : InteractionModuleBase<SocketInteractionContext
             }
         }
     }
+    
+    // static bool IsBotAlone(IAudioClient? audioClient)
+    // {
+    //     if (audioClient is not IVoiceChannel vc) return true;
+    //
+    //     var users = vc.GetUsersAsync().FlattenAsync().GetAwaiter().GetResult();
+    //
+    //     // Consider bot alone if no other real user is present.
+    //     return users.All(u => u.IsBot);
+    // }
 
 
     // ────────────────────  per-guild state holder  ───────────────
