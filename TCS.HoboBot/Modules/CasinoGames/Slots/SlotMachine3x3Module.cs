@@ -29,7 +29,7 @@ namespace TCS.HoboBot.Modules.CasinoGames {
             new() { (0, 2), (1, 1), (2, 0) }, // Diag ↙
         ];
 
-        const float RTP = 1.2f;
+        const float RTP = 1.1f;
         const decimal SCALING_FACTOR = 0.957009m; // = 1 / 1.044922
 
         static readonly Dictionary<ClassicSlotIcon, decimal> BaseLinePayoutMultipliers = new() {
