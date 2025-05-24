@@ -30,9 +30,28 @@ public class RollModule : InteractionModuleBase<SocketInteractionContext> {
 
 public class TopHoboModule : InteractionModuleBase<SocketInteractionContext> {
     [SlashCommand( "top", "Check the top hobos!" )]
+    // public async Task TopAsync() {
+    //     string result = PlayersWallet.GetTopTenHobos( Context.Guild );
+    //     await RespondAsync( $"Top hobos:\n{result}" );
+    // }
+    
     public async Task TopAsync() {
-        string result = PlayersWallet.GetTopTenHobos( Context.Guild.Id );
-        await RespondAsync( $"Top hobos:\n{result}" );
+        // get or create this guild's wallet of PlayerWallets
+        ConcurrentDictionary<ulong, PlayerWallet> guildWallets = PlayersWallet.PlayerWallets
+            .GetOrAdd(Context.Guild.Id, _ => new ConcurrentDictionary<ulong, PlayerWallet>());
+
+        // take top 10 users by Cash
+        var topHoboTasks = guildWallets
+            .OrderByDescending(kv => kv.Value.Cash)
+            .Take(10)
+            .Select(async kv => {
+                var user = await Context.Client.Rest.GetUserAsync(kv.Key);
+                string name = user?.GlobalName ?? user?.Username ?? kv.Key.ToString();
+                return $"{name}: ${kv.Value.Cash:0.00}";
+            });
+
+        var topHobos = await Task.WhenAll(topHoboTasks);
+        await RespondAsync($"Top hobos:\n{string.Join("\n", topHobos)}");
     }
 }
 
