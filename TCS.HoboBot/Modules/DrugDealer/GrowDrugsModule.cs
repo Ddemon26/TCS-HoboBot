@@ -96,6 +96,7 @@ public class GrowDrugsModule : InteractionModuleBase<SocketInteractionContext> {
         (ConcurrentDictionary<ulong, DateTimeOffset> nextDict, var cooldown) = type switch {
             GrowType.Weed => (PlayersStashes.NextWeedGrow, PlayersStashes.GrowCooldown),
             GrowType.Shrooms => (PlayersStashes.NextShroomGrow, PlayersStashes.GrowCooldown),
+            GrowType.Dmt => (PlayersStashes.NextWeedGrow, PlayersStashes.GrowCooldown),
             _ => throw new ArgumentOutOfRangeException( nameof(type), type, null ),
         };
 
@@ -110,7 +111,12 @@ public class GrowDrugsModule : InteractionModuleBase<SocketInteractionContext> {
 
         nextDict[userId] = now.Add( cooldown );
         int amount = Rng.Next( 5, 26 );
-        var drug = type == GrowType.Weed ? DrugType.Weed : DrugType.Shrooms;
+        var drug = type switch {
+            GrowType.Weed => DrugType.Weed,
+            GrowType.Shrooms => DrugType.Shrooms,
+            GrowType.Dmt => DrugType.Dmt,
+            _ => throw new ArgumentOutOfRangeException( nameof(type), type, null ),
+        };
         stash.AddAmountToType( drug, amount );
         PlayersStashes.SaveStash( Context.Guild.Id, userId, stash );
 
