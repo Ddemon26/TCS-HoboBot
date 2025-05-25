@@ -37,7 +37,7 @@ namespace TCS.HoboBot.Modules.CasinoGames {
             return Symbols[Rng.Next( Symbols.Count )];
         }
 
-        protected async Task PlaySlotsAsync(float bet, bool isSpinAgainRequest = false, SocketInteraction? interactionToModify = null) {
+        protected virtual async Task PlaySlotsAsync(float bet, bool isSpinAgainRequest = false, SocketInteraction? interactionToModify = null) {
             float processingBet = bet; // Use a local variable for processing
             if ( !isSpinAgainRequest ) {
                 if ( !ValidateBet( ref processingBet, out string? error ) ) // processingBet might be capped by ValidateBet
@@ -48,7 +48,7 @@ namespace TCS.HoboBot.Modules.CasinoGames {
             }
             else if ( interactionToModify != null ) // This means it's a button interaction for spin again
             {
-                if ( PlayersWallet.GetBalance( Context.Guild.Id, Context.User.Id  ) < processingBet ) {
+                if ( PlayersWallet.GetBalance( Context.Guild.Id, Context.User.Id ) < processingBet ) {
                     var error = $"{Context.User.Mention} doesn't have enough cash for another spin at ${processingBet:0.00}!";
                     await interactionToModify.ModifyOriginalResponseAsync( m => {
                             m.Content = error;
@@ -63,11 +63,11 @@ namespace TCS.HoboBot.Modules.CasinoGames {
                 }
             }
 
-            PlayersWallet.SubtractFromBalance( Context.Guild.Id, Context.User.Id , processingBet );
+            PlayersWallet.SubtractFromBalance( Context.Guild.Id, Context.User.Id, processingBet );
             await SpinAndRespondAsync( processingBet, isSpinAgainRequest || interactionToModify != null, interactionToModify );
         }
 
-        protected async Task HandleSpinAgainAsync(string rawBetFromButton) {
+        protected virtual async Task HandleSpinAgainAsync(string rawBetFromButton) {
             // Defer must be called by the method with the [ComponentInteraction] attribute.
             // await DeferAsync(ephemeral: true); // Call DeferAsync in the actual button handler in derived class
 
@@ -84,7 +84,7 @@ namespace TCS.HoboBot.Modules.CasinoGames {
             await PlaySlotsAsync( bet, isSpinAgainRequest: true, interactionToModify: Context.Interaction );
         }
 
-        protected async Task HandleEndGameAsync() {
+        protected virtual async Task HandleEndGameAsync() {
             // await DeferAsync(ephemeral: true); // Call DeferAsync in the actual button handler in derived class
             await Context.Interaction.ModifyOriginalResponseAsync( m => {
                     m.Embed = new EmbedBuilder()
@@ -96,7 +96,7 @@ namespace TCS.HoboBot.Modules.CasinoGames {
             );
         }
 
-        protected bool ValidateBet(ref float bet, out string? error) {
+        protected virtual bool ValidateBet(ref float bet, out string? error) {
             error = null;
             if ( bet < MinBet ) {
                 error = $"Bet must be at least ${MinBet:0.00}.";
@@ -108,23 +108,33 @@ namespace TCS.HoboBot.Modules.CasinoGames {
                 bet = MaxBet;
             }
 
-            if ( PlayersWallet.GetBalance( Context.Guild.Id, Context.User.Id  ) < bet ) {
-                error = $"{Context.User.Mention} doesn’t have enough cash! Your balance is ${PlayersWallet.GetBalance( Context.Guild.Id, Context.User.Id  ):C2}. You tried to bet ${bet:C2}.";
+            if ( PlayersWallet.GetBalance( Context.Guild.Id, Context.User.Id ) < bet ) {
+                error = $"{Context.User.Mention} doesn’t have enough cash! Your balance is ${PlayersWallet.GetBalance( Context.Guild.Id, Context.User.Id ):C2}. You tried to bet ${bet:C2}.";
                 return false;
             }
 
             return true;
         }
 
-        protected async Task SpinAndRespondAsync(float bet, bool isFollowUpOrButton, SocketInteraction? interactionToModify = null) {
+        protected virtual async Task SpinAndRespondAsync(float bet, bool isFollowUpOrButton, SocketInteraction? interactionToModify = null) {
             TSymbol[][] spinResult = SpinReelsInternal();
             (decimal payoutMultiplier, string winDescription) = CalculatePayoutInternal( spinResult, bet );
             var totalWinningsValue = 0m; // This is the total amount returned for the spin (bet * multiplier)
 
             if ( payoutMultiplier > 0 ) {
                 totalWinningsValue = (decimal)bet * payoutMultiplier;
-                PlayersWallet.AddToBalance( Context.Guild.Id, Context.User.Id , (float)totalWinningsValue );
-            }else {
+
+                if ( CasinoManager.GetJackpot( Context.Guild.Id, bet, out var type, out float jackpotValue ) ) {
+                    winDescription += $"\n\n🎉 YOU hit the **{type} Jackpot** of **{jackpotValue:C2}!**";
+                    // Announce the jackpot win
+                    totalWinningsValue += (decimal)jackpotValue;
+                    var msg = $"🎉 {Context.User.Mention} has hit the **{type} Jackpot** of **{jackpotValue:C2}** on {GameName}!";
+                    await Context.Channel.SendMessageAsync( msg ); // Send it as a new message to the channel
+                }
+
+                PlayersWallet.AddToBalance( Context.Guild.Id, Context.User.Id, (float)totalWinningsValue );
+            }
+            else {
                 CasinoManager.AddToSlotsJackpots( Context.Guild.Id, bet );
             }
 
@@ -153,9 +163,9 @@ namespace TCS.HoboBot.Modules.CasinoGames {
                     await AnnouncePublicWin( Context.User, profitAmount );
                 }
             }
-            
+
             // Announce jackpot wins
-            if ( CasinoManager.GetJackpot( Context.Guild.Id, JackpotType.MegaJackpot, out float jackpot ) ) {
+            /*if ( CasinoManager.GetJackpot( Context.Guild.Id, JackpotType.MegaJackpot, out float jackpot ) ) {
                 var msg = $"🎉 {Context.User.Mention} has hit the **Mega Jackpot** of **{jackpot:C2}** on {GameName}!";
                 await Context.Channel.SendMessageAsync( msg ); // Send as a new message to the channel
                 return;
@@ -168,10 +178,10 @@ namespace TCS.HoboBot.Modules.CasinoGames {
             if ( CasinoManager.GetJackpot( Context.Guild.Id, JackpotType.MiniJackpot, out jackpot ) ) {
                 var msg = $"🎉 {Context.User.Mention} has hit the **Mini Jackpot** of **{jackpot:C2}** on {GameName}!";
                 await Context.Channel.SendMessageAsync( msg ); // Send as a new message to the channel
-            }
+            }*/
         }
 
-        protected async Task AnnouncePublicWin(SocketUser user, decimal profitAmount) {
+        protected virtual async Task AnnouncePublicWin(SocketUser user, decimal profitAmount) {
             var msg = $"🎰 {user.Mention} wins **{profitAmount:C2}** on {GameName}!";
             await Context.Channel.SendMessageAsync( msg ); // Send as a new message to the channel
         }
