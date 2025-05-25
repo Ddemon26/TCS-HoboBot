@@ -1,171 +1,148 @@
 ﻿using System.Collections.Concurrent;
-using Discord.Rest;
 using Discord.WebSocket;
 using Newtonsoft.Json;
+
 namespace TCS.HoboBot.Modules.CasinoGames.Slots;
 
-public static class DiscordGuildMemberCache {
-    public static readonly ConcurrentDictionary<ulong, RestGuildUser[]> GuildMembers = new();
-
-    public static void AddMembers(ulong guildId, RestGuildUser[] members) {
-        GuildMembers[guildId] = members;
-    }
-
-    public static RestGuildUser? GetUser(ulong guildId, ulong userId)
-        => GuildMembers
-            .TryGetValue( guildId, out RestGuildUser?[]? members ) ? members
-            .OfType<RestGuildUser>()
-            .FirstOrDefault( member => member.Id == userId ) : null;
-}
-
-public enum JackpotType {
-    MegaJackpot,
-    ProgressiveJackpot,
-    MiniJackpot,
-}
+public enum JackpotType { Mega, Minor, Mini }
 
 public static class CasinoManager {
+    /* ───────────────────────────  CONFIG  ─────────────────────────── */
+
+    /// <summary>All tunables for a single jackpot tier.</summary>
+    record TierSetting(
+        double BaseProb, // hit chance for a 1-credit bet
+        double ScalingBet, // bet where chance stops increasing
+        double MaxMultiplier, // chance at ScalingBet = BaseProb × MaxMultiplier
+        float ResetValue, // meter value after a hit
+        double ContributionShare // cut of each wager that feeds this meter
+    );
+
+    static readonly Dictionary<JackpotType, TierSetting> Settings = new() {
+        [JackpotType.Mega] = new TierSetting(1.0 / 100_000, 10_000, 10, 100_000f, 0.50),
+        [JackpotType.Minor] = new TierSetting(1.0 / 10_000, 10_000, 10, 25_000f, 0.30),
+        [JackpotType.Mini] = new TierSetting(1.0 / 5_000, 10_000, 10, 10_000f, 0.20),
+    };
+
+    const double CUT = 0.01;   // 5 %
+
+    /* ───────────────────────  DATA STRUCTURES  ────────────────────── */
+
     public class JackPots {
         public ulong GuildId { get; set; }
         public float SlotsMegaJackpot { get; set; }
         public float SlotProgressiveJackpot { get; set; }
         public float SlotMiniJackpot { get; set; }
-        
-        public override string ToString() {
-            return $"**Current Jackpots**\n" +
-                   $" Mega: {SlotsMegaJackpot}\n" +
-                   $" Progressive: {SlotProgressiveJackpot}\n" +
-                   $" Mini: {SlotMiniJackpot}";
-        }
-    }
-    
-    static readonly Random Rng = new();
 
+        public override string ToString() =>
+            $"**Current Jackpots**\n" +
+            $" Mega: {SlotsMegaJackpot:N0}\n" +
+            $" Minor: {SlotProgressiveJackpot:N0}\n" +
+            $" Mini: {SlotMiniJackpot:N0}";
+    }
+
+    static readonly Random Rng = new();
     public static readonly ConcurrentDictionary<ulong, JackPots> JackPotsCache = new();
 
-    // public const float MEGA_CHANCE = 0.0001f; // 1 in 1,000,000
-    // public const float PROGRESSIVE_CHANCE = 0.001f; // 1 in 100,000
-    // public const float MINI_CHANCE = 0.01f; // 1 in 10,000
+    /* ──────────────────────  CONTRIBUTION LOGIC  ──────────────────── */
 
-    public const float MEGA_CHANCE = 0.001f; // 1 in 100,000
-    public const float PROGRESSIVE_CHANCE = 0.01f; // 1 in 10,000
-    public const float MINI_CHANCE = 0.1f; // 1 in 1,000
+    public static void AddToSlotsJackpots(ulong guildId, float wager) {
+        double contrib = wager * CUT; // total going to progressive pool
 
-    // public const float MEGA_CHANCE = 10f; // 1 in 10
-    // public const float PROGRESSIVE_CHANCE = 25f; // 1 in 4
-    // public const float MINI_CHANCE = 50f; // 1 in 2
-
-    const string FILE_PATH = "jackpots.json";
-    static string GetFilePath(ulong guildId) => Path.Combine( "Data", guildId.ToString(), FILE_PATH );
-
-    public static void AddToSlotsJackpots(ulong guildId, float amount) {
-        float cutAmount = amount * 0.5f;
-        if ( JackPotsCache.TryGetValue( guildId, out var jackpots ) ) {
-            jackpots.GuildId = guildId;
-            jackpots.SlotsMegaJackpot += cutAmount * 0.5f;
-            jackpots.SlotProgressiveJackpot += cutAmount * 0.3f;
-            jackpots.SlotMiniJackpot += cutAmount * 0.2f;
-
-        }
-        else {
-            JackPotsCache[guildId] = new JackPots {
+        if ( !JackPotsCache.TryGetValue( guildId, out var jp ) ) {
+            jp = JackPotsCache[guildId] = new JackPots {
                 GuildId = guildId,
-                SlotsMegaJackpot = cutAmount * 0.5f,
-                SlotProgressiveJackpot = cutAmount * 0.3f,
-                SlotMiniJackpot = cutAmount * 0.2f,
+                SlotsMegaJackpot = Settings[JackpotType.Mega].ResetValue,
+                SlotProgressiveJackpot = Settings[JackpotType.Minor].ResetValue,
+                SlotMiniJackpot = Settings[JackpotType.Mini].ResetValue,
             };
         }
+
+        jp.SlotsMegaJackpot += (float)(contrib * Settings[JackpotType.Mega].ContributionShare);
+        jp.SlotProgressiveJackpot += (float)(contrib * Settings[JackpotType.Minor].ContributionShare);
+        jp.SlotMiniJackpot += (float)(contrib * Settings[JackpotType.Mini].ContributionShare);
     }
 
-    public static bool GetJackpot(ulong guildId, JackpotType type, out float jackpot) {
-        if ( JackPotsCache.TryGetValue( guildId, out var jackpots ) ) {
-            float chance = type switch {
-                JackpotType.MegaJackpot => MEGA_CHANCE,
-                JackpotType.ProgressiveJackpot => PROGRESSIVE_CHANCE,
-                JackpotType.MiniJackpot => MINI_CHANCE,
-                _ => 0f,
-            };
+    /* ────────────────────────  HIT DETERMINER  ─────────────────────── */
 
-            double roll = Rng.NextDouble() * 100;
-            if ( roll < chance ) {
-                jackpot = type switch {
-                    JackpotType.MegaJackpot => jackpots.SlotsMegaJackpot,
-                    JackpotType.ProgressiveJackpot => jackpots.SlotProgressiveJackpot,
-                    JackpotType.MiniJackpot => jackpots.SlotMiniJackpot,
-                    _ => 0f,
-                };
+    public static bool GetJackpot(ulong guildId, float bet, out JackpotType type, out float amount) {
+        amount = 0f;
+        type = default;
 
-                // Reset the jackpot value after winning
-                switch (type) {
-                    case JackpotType.MegaJackpot:
-                        jackpots.SlotsMegaJackpot = 0;
+        if ( !JackPotsCache.TryGetValue( guildId, out var jp ) || bet <= 0 )
+            return false;
+
+        // Priority order: Mega → Progressive → Mini
+        foreach (var tier in new[] { JackpotType.Mega, JackpotType.Minor, JackpotType.Mini }) {
+            var s = Settings[tier];
+
+            // Linear bet-weighted odds capped at MaxMultiplier
+            double multiplier = 1 + (s.MaxMultiplier - 1) * Math.Min( bet / s.ScalingBet, 1 );
+            double p = s.BaseProb * multiplier;
+
+            if ( Rng.NextDouble() < p ) {
+                // -- jackpot hit! -------------------------------------
+                type = tier;
+                switch (tier) {
+                    case JackpotType.Mega:
+                        amount = jp.SlotsMegaJackpot;
+                        jp.SlotsMegaJackpot = s.ResetValue;
                         break;
-                    case JackpotType.ProgressiveJackpot:
-                        jackpots.SlotProgressiveJackpot = 0;
+                    case JackpotType.Minor:
+                        amount = jp.SlotProgressiveJackpot;
+                        jp.SlotProgressiveJackpot = s.ResetValue;
                         break;
-                    case JackpotType.MiniJackpot:
-                        jackpots.SlotMiniJackpot = 0;
+                    case JackpotType.Mini:
+                        amount = jp.SlotMiniJackpot;
+                        jp.SlotMiniJackpot = s.ResetValue;
                         break;
-                    default:
-                        throw new ArgumentOutOfRangeException( nameof(type), type, null );
                 }
 
                 return true;
             }
         }
 
-        jackpot = 0f;
         return false;
     }
 
-    #region Save/Load
-    // we are given our guild id when saving the jackpots
+    /* ─────────────────────––  SAVE / LOAD (unchanged)  ───────────────────── */
+
+    const string FILE_PATH = "jackpots.json";
+    static string GetFilePath(ulong gid) => Path.Combine( "Data", gid.ToString(), FILE_PATH );
+
     public static async Task SaveAsync() {
-        foreach ((ulong guildId, var jackpots) in JackPotsCache) {
-            string dir = Path.Combine( "Data", guildId.ToString() );
+        foreach ((ulong gid, var jp) in JackPotsCache) {
+            string dir = Path.Combine( "Data", gid.ToString() );
             Directory.CreateDirectory( dir );
 
-            string path = GetFilePath( guildId );
-            string json = Serialize( jackpots );
-
+            string path = GetFilePath( gid );
+            string json = Serialize( jp );
             await File.WriteAllTextAsync( path, json );
         }
+        
+        // clear the cache
+        JackPotsCache.Clear();
     }
 
-    // we are given our guild id when loading the jackpots
-    public static async Task LoadAsync(IReadOnlyCollection<SocketGuild> clientGuilds) {
-        const string root = "Data";
-
-        foreach (var guild in clientGuilds) {
-            string dir = Path.Combine( root, guild.Id.ToString() );
-            Directory.CreateDirectory( dir );
-
-            string path = GetFilePath( guild.Id );
-            if ( !File.Exists( path ) ) {
-                continue;
-            }
+    public static async Task LoadAsync(IReadOnlyCollection<SocketGuild> guilds) {
+        // clear the cache
+        JackPotsCache.Clear();
+        foreach (var g in guilds) {
+            string path = GetFilePath( g.Id );
+            if ( !File.Exists( path ) ) continue;
 
             string json = await File.ReadAllTextAsync( path );
-            var loaded = Deserialize<JackPots>( json );
-            if ( loaded is null ) {
-                continue;
-            }
-
-            JackPotsCache[guild.Id] = loaded;
+            if ( Deserialize<JackPots>( json ) is { } loaded )
+                JackPotsCache[g.Id] = loaded;
         }
     }
 
-    static readonly JsonSerializerSettings WriteSettings = new() {
-        Formatting = Formatting.Indented,
-    };
-
+    static readonly JsonSerializerSettings WriteSettings = new() { Formatting = Formatting.Indented };
     static readonly JsonSerializerSettings ReadSettings = new() {
         MissingMemberHandling = MissingMemberHandling.Ignore,
         FloatParseHandling = FloatParseHandling.Double,
     };
 
     static string Serialize<T>(T value) => JsonConvert.SerializeObject( value, WriteSettings );
-
     static T? Deserialize<T>(string json) => JsonConvert.DeserializeObject<T>( json, ReadSettings );
-    #endregion
 }
