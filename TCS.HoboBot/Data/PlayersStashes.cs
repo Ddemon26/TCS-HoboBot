@@ -13,7 +13,7 @@ namespace TCS.HoboBot.Modules.DrugDealer;
 //     Underboss,
 //     Godfather
 // }
-public enum DrugType { Weed, Cocaine, Heroin, Crack, Meth, Lsd, Shrooms, Ecstasy }
+public enum DrugType { Weed, Cocaine, Heroin, Crack, Meth, Lsd, Shrooms, Ecstasy, Dmt }
 
 public static class PlayersStashes {
     //public static readonly ConcurrentDictionary<ulong, PlayerStash> Stash = new();
@@ -26,6 +26,7 @@ public static class PlayersStashes {
     public static readonly ConcurrentDictionary<ulong, DateTimeOffset> NextMethCook = new();
     public static readonly ConcurrentDictionary<ulong, DateTimeOffset> NextLsdCook = new();
     public static readonly ConcurrentDictionary<ulong, DateTimeOffset> NextEcstasyCook = new();
+    public static readonly ConcurrentDictionary<ulong, DateTimeOffset> NextDmtCook = new();
 
 
     public static readonly TimeSpan GrowCooldown = TimeSpan.FromMinutes( 30 );
@@ -46,6 +47,7 @@ public static class PlayersStashes {
             DrugType.Meth => 400,
             DrugType.Lsd => 500,
             DrugType.Ecstasy => 700,
+            DrugType.Dmt => 1000,
             _ => throw new ArgumentOutOfRangeException( nameof(type), type, null ),
         };
     }
@@ -59,7 +61,9 @@ public static class PlayersStashes {
                stash.CrackAmount * GetPriceByType( DrugType.Crack ) +
                stash.MethAmount * GetPriceByType( DrugType.Meth ) +
                stash.LsdAmount * GetPriceByType( DrugType.Lsd ) +
-               stash.EcstasyAmount * GetPriceByType( DrugType.Ecstasy );
+               stash.EcstasyAmount * GetPriceByType( DrugType.Ecstasy ) +
+               stash.DmtAmount * GetPriceByType( DrugType.Dmt );
+               
     }
 
     public static PlayerStash GetStash(ulong guildId, ulong userId) {
@@ -102,6 +106,9 @@ public static class PlayersStashes {
         foreach (KeyValuePair<ulong, Dictionary<ulong, PlayerStash>> kv in GlobalStashCache) {
             await SaveAsync( kv.Key );
         }
+        
+        //clear the cache
+        GlobalStashCache.Clear();
     }
 
     static async Task SaveAsync(ulong guildId) {
@@ -118,6 +125,8 @@ public static class PlayersStashes {
 
     public static async Task LoadAsync(IReadOnlyCollection<SocketGuild> clientGuilds) {
         const string root = "Data";
+        // clear the cache
+        GlobalStashCache.Clear();
 
         foreach (var guild in clientGuilds) {
             string dir = Path.Combine( root, guild.Id.ToString() );
@@ -159,6 +168,7 @@ public static class PlayersStashes {
     public int MethAmount { get; set; }
     public int LsdAmount { get; set; }
     public int EcstasyAmount { get; set; }
+    public int DmtAmount { get; set; }
 
     public float TotalCashAcquiredFromSelling { get; set; }
 
@@ -172,6 +182,7 @@ public static class PlayersStashes {
             DrugType.Meth => MethAmount,
             DrugType.Lsd => LsdAmount,
             DrugType.Ecstasy => EcstasyAmount,
+            DrugType.Dmt => DmtAmount,
             _ => throw new ArgumentOutOfRangeException( nameof(type), type, null ),
         };
     }
@@ -203,6 +214,9 @@ public static class PlayersStashes {
             case DrugType.Ecstasy:
                 EcstasyAmount += amount;
                 break;
+            case DrugType.Dmt:
+                DmtAmount += amount;
+                break;
             default:
                 throw new ArgumentOutOfRangeException( nameof(type), type, null );
         }
@@ -217,11 +231,12 @@ public static class PlayersStashes {
         MethAmount = 0;
         LsdAmount = 0;
         EcstasyAmount = 0;
+        DmtAmount = 0;
     }
 
     public bool HasAnyDrugs() {
         return WeedAmount > 0 || ShroomsAmount > 0 || CocaineAmount > 0 || HeroinAmount > 0 ||
-               CrackAmount > 0 || MethAmount > 0 || LsdAmount > 0 || EcstasyAmount > 0;
+               CrackAmount > 0 || MethAmount > 0 || LsdAmount > 0 || EcstasyAmount > 0 || DmtAmount > 0;
     }
 
     public string GetDrugsString() {
@@ -257,6 +272,10 @@ public static class PlayersStashes {
 
         if ( EcstasyAmount > 0 ) {
             lines.Add( $"Ecstasy: {700:N0} ({EcstasyAmount})" );
+        }
+        
+        if ( DmtAmount > 0 ) {
+            lines.Add( $"Dmt: {1000:N0} ({DmtAmount})" );
         }
 
         return lines.Count == 0 ? "No drugs in stash." : string.Join( "\n", lines );
