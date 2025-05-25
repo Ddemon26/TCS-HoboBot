@@ -41,7 +41,10 @@ public sealed class MusicModule : InteractionModuleBase<SocketInteractionContext
     [SlashCommand( "skip", "Skip the current track.", runMode: RunMode.Async )]
     public async Task SkipAsync() {
         if ( GuildAudioData.TryGetValue( Context.Guild.Id, out var ga ) ) {
-            await ga.CancelToken?.CancelAsync()!;
+            if ( ga.CancelToken is { } cts ) // safe, non-null C.T.S.
+            {
+                await cts.CancelAsync();
+            }
         }
 
         await RespondAsync( "⏭️ Skipping…" );
@@ -74,7 +77,15 @@ public sealed class MusicModule : InteractionModuleBase<SocketInteractionContext
 
                 try {
                     string streamUrl = await GetDirectAudioUrlAsync( url, cts.Token );
-                    await StreamToDiscordAsync( ga.Client!, streamUrl, cts.Token );
+
+                    if ( ga.Client is { } client ) // ensure non-null
+                    {
+                        await StreamToDiscordAsync( client, streamUrl, cts.Token );
+                    }
+                    else {
+                        // The bot somehow lost its connection; exit the loop gracefully.
+                        break;
+                    }
                 }
                 catch (OperationCanceledException) {
                     /* skip/leave */
@@ -126,7 +137,7 @@ public sealed class MusicModule : InteractionModuleBase<SocketInteractionContext
             /* ignore */
         }
 
-        return string.IsNullOrWhiteSpace( direct ) ? throw new Exception( "yt-dlp returned no URL." ) : direct!;
+        return string.IsNullOrWhiteSpace( direct ) ? throw new Exception( "yt-dlp returned no URL." ) : direct;
     }
 
     // ────────────────────────  FFmpeg ➜ Discord  ─────────────────
@@ -156,7 +167,7 @@ public sealed class MusicModule : InteractionModuleBase<SocketInteractionContext
             }
         }
     }
-    
+
     // static bool IsBotAlone(IAudioClient? audioClient)
     // {
     //     if (audioClient is not IVoiceChannel vc) return true;
