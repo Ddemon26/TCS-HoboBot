@@ -126,6 +126,9 @@ public static class PlayersProperties {
         foreach (KeyValuePair<ulong, Dictionary<ulong, int[]>> kv in GlobalOwnedProperties) {
             await SaveAsync( kv.Key );
         }
+        
+        // clear the cache
+        GlobalOwnedProperties.Clear();
     }
 
     public static async Task SaveAsync(ulong guildId) {
@@ -142,6 +145,8 @@ public static class PlayersProperties {
 
     public static async Task LoadAsync(IReadOnlyCollection<SocketGuild> clientGuilds) {
         const string root = "Data";
+        // clear the cache
+        GlobalOwnedProperties.Clear();
 
         foreach (var guild in clientGuilds) {
             string dir = Path.Combine( root, guild.Id.ToString() );
