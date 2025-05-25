@@ -22,7 +22,7 @@ namespace TCS.HoboBot.Modules.CasinoGames {
         protected override int NumberOfReels => 3;
 
         // Post-spin RTP multiplier
-        const float RTP = 1.1f;
+        const float RTP = 0.96f;
 
         // Scale pre-RTP to exactly 1.0: 1 / 1.744140625 ≈ 0.573348264277716
         const decimal SCALING_FACTOR = 0.573348264277716m;
