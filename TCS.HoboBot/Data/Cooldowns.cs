@@ -1,7 +1,7 @@
 ﻿using System.Collections.Concurrent;
 namespace TCS.HoboBot.Data;
 
-public enum CooldownKind { Beg, Job, Rob, Prostitution }
+public enum CooldownKind { Beg, Job, Rob, Prostitution, Versus }    
 public static class Cooldowns {
     // Outer key = guild, inner key = user, value = next-allowed time
     static readonly ConcurrentDictionary<
@@ -15,6 +15,7 @@ public static class Cooldowns {
             [CooldownKind.Job] = TimeSpan.FromMinutes( 10 ),
             [CooldownKind.Rob] = TimeSpan.FromMinutes( 10 ),
             [CooldownKind.Prostitution] = TimeSpan.FromMinutes( 30 ),
+            [CooldownKind.Versus] = TimeSpan.FromMinutes( 5 ),
         };
 
     public static DateTimeOffset Get(ulong guildId, ulong userId, CooldownKind kind) {
