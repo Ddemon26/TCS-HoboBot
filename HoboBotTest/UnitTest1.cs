@@ -1,11 +1,6 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Reflection;
-using System.Threading;
-using System.Threading.Tasks;
 using TCS.HoboBot.Modules.CasinoGames.Slots; // Your actual game module
 using Assert = Microsoft.VisualStudio.TestTools.UnitTesting.Assert;
 
