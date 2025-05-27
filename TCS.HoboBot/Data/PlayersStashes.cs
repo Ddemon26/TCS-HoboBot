@@ -13,29 +13,55 @@ namespace TCS.HoboBot.Modules.DrugDealer;
 //     Underboss,
 //     Godfather
 // }
-public enum DrugType { Weed, Cocaine, Heroin, Crack, Meth, Lsd, Shrooms, Ecstasy, Dmt }
+public enum DrugType { Weed, Shrooms, Cocaine, Heroin, Crack, Meth, Lsd, Ecstasy, Dmt }
 
 public static class PlayersStashes {
     //public static readonly ConcurrentDictionary<ulong, PlayerStash> Stash = new();
-    public static readonly ConcurrentDictionary<ulong, DateTimeOffset> NextWeedGrow = new();
-    public static readonly ConcurrentDictionary<ulong, DateTimeOffset> NextShroomGrow = new();
-
-    public static readonly ConcurrentDictionary<ulong, DateTimeOffset> NextCocaineCook = new();
-    public static readonly ConcurrentDictionary<ulong, DateTimeOffset> NextHeroinCook = new();
-    public static readonly ConcurrentDictionary<ulong, DateTimeOffset> NextCrackCook = new();
-    public static readonly ConcurrentDictionary<ulong, DateTimeOffset> NextMethCook = new();
-    public static readonly ConcurrentDictionary<ulong, DateTimeOffset> NextLsdCook = new();
-    public static readonly ConcurrentDictionary<ulong, DateTimeOffset> NextEcstasyCook = new();
-    public static readonly ConcurrentDictionary<ulong, DateTimeOffset> NextDmtCook = new();
+    // public static readonly ConcurrentDictionary<ulong, DateTimeOffset> NextWeedGrow = new();
+    // public static readonly ConcurrentDictionary<ulong, DateTimeOffset> NextShroomGrow = new();
+    //
+    // public static readonly ConcurrentDictionary<ulong, DateTimeOffset> NextCocaineCook = new();
+    // public static readonly ConcurrentDictionary<ulong, DateTimeOffset> NextHeroinCook = new();
+    // public static readonly ConcurrentDictionary<ulong, DateTimeOffset> NextCrackCook = new();
+    // public static readonly ConcurrentDictionary<ulong, DateTimeOffset> NextMethCook = new();
+    // public static readonly ConcurrentDictionary<ulong, DateTimeOffset> NextLsdCook = new();
+    // public static readonly ConcurrentDictionary<ulong, DateTimeOffset> NextEcstasyCook = new();
+    // public static readonly ConcurrentDictionary<ulong, DateTimeOffset> NextDmtCook = new();
 
 
     public static readonly TimeSpan GrowCooldown = TimeSpan.FromMinutes( 30 );
     public static readonly TimeSpan CookCooldown = TimeSpan.FromMinutes( 30 );
+    
+    // (userId, drugType)  →  nextTime
+    public static readonly ConcurrentDictionary<(ulong, DrugType), DateTimeOffset> NextGrow 
+        = new();
+
+    // public static readonly ConcurrentDictionary<(ulong, DrugType), DateTimeOffset> NextCook 
+    //     = new();
+
+// Helpers ----------------------------------------------------------
+
+    static (ulong, DrugType) Key(ulong userId, DrugType drug) => (userId, drug);
+
+    public static bool IsOnCooldown(ulong userId, DrugType drug, out TimeSpan remaining)
+    {
+        if (NextGrow.TryGetValue(Key(userId, drug), out var next))
+        {
+            remaining = next - DateTimeOffset.UtcNow;
+            return remaining > TimeSpan.Zero;
+        }
+        remaining = TimeSpan.Zero;
+        return false;
+    }
+
+    public static void StartCooldown(ulong userId, DrugType drug)
+        => NextGrow[Key(userId, drug)] = DateTimeOffset.UtcNow + GrowCooldown;
+
 
     static readonly string FilePath = "playerStashes.json";
     static string GetFilePath(ulong guildId) => Path.Combine( "Data", guildId.ToString(), FilePath );
 
-    static readonly ConcurrentDictionary<ulong, Dictionary<ulong, PlayerStash>> GlobalStashCache = new();
+    static readonly ConcurrentDictionary<ulong, ConcurrentDictionary<ulong, PlayerStash>> GlobalStashCache = new();
 
     public static float GetPriceByType(DrugType type) {
         return type switch {
@@ -63,13 +89,13 @@ public static class PlayersStashes {
                stash.LsdAmount * GetPriceByType( DrugType.Lsd ) +
                stash.EcstasyAmount * GetPriceByType( DrugType.Ecstasy ) +
                stash.DmtAmount * GetPriceByType( DrugType.Dmt );
-               
+
     }
 
     public static PlayerStash GetStash(ulong guildId, ulong userId) {
-        Dictionary<ulong, PlayerStash> guildStashes = GlobalStashCache.GetOrAdd(
+        ConcurrentDictionary<ulong, PlayerStash> guildStashes = GlobalStashCache.GetOrAdd(
             guildId,
-            _ => new Dictionary<ulong, PlayerStash>()
+            _ => new ConcurrentDictionary<ulong, PlayerStash>()
         );
 
         if ( guildStashes.TryGetValue( userId, out var stash ) ) {
@@ -84,29 +110,19 @@ public static class PlayersStashes {
 
     //save stash to the cache
     public static void SaveStash(ulong guildId, ulong userId, PlayerStash stash) {
-        Dictionary<ulong, PlayerStash> guildStashes = GlobalStashCache.GetOrAdd(
+        ConcurrentDictionary<ulong, PlayerStash> guildStashes = GlobalStashCache.GetOrAdd(
             guildId,
-            _ => new Dictionary<ulong, PlayerStash>()
+            _ => new ConcurrentDictionary<ulong, PlayerStash>()
         );
 
         guildStashes[userId] = stash;
     }
 
-    public static void ResetStash(ulong guildId, ulong userId) {
-        Dictionary<ulong, PlayerStash> guildStashes = GlobalStashCache.GetOrAdd(
-            guildId,
-            _ => new Dictionary<ulong, PlayerStash>()
-        );
-
-        guildStashes[userId] = new PlayerStash();
-    }
-
-
     public static async Task SaveAsync() {
-        foreach (KeyValuePair<ulong, Dictionary<ulong, PlayerStash>> kv in GlobalStashCache) {
+        foreach (KeyValuePair<ulong, ConcurrentDictionary<ulong, PlayerStash>> kv in GlobalStashCache) {
             await SaveAsync( kv.Key );
         }
-        
+
         //clear the cache
         GlobalStashCache.Clear();
     }
@@ -115,8 +131,8 @@ public static class PlayersStashes {
         string dir = Path.Combine( "Data", guildId.ToString() );
         Directory.CreateDirectory( dir );
         string path = GetFilePath( guildId );
-        if ( !GlobalStashCache.TryGetValue( guildId, out Dictionary<ulong, PlayerStash>? guildStashes ) ) {
-            guildStashes = new Dictionary<ulong, PlayerStash>();
+        if ( !GlobalStashCache.TryGetValue( guildId, out ConcurrentDictionary<ulong, PlayerStash>? guildStashes ) ) {
+            guildStashes = new ConcurrentDictionary<ulong, PlayerStash>();
         }
 
         string json = Serialize( guildStashes );
@@ -138,7 +154,7 @@ public static class PlayersStashes {
             }
 
             string json = await File.ReadAllTextAsync( path );
-            Dictionary<ulong, PlayerStash>? loaded = Deserialize<Dictionary<ulong, PlayerStash>>( json );
+            ConcurrentDictionary<ulong, PlayerStash>? loaded = Deserialize<ConcurrentDictionary<ulong, PlayerStash>>( json );
             if ( loaded is null ) {
                 continue;
             }
@@ -273,7 +289,7 @@ public static class PlayersStashes {
         if ( EcstasyAmount > 0 ) {
             lines.Add( $"Ecstasy: {700:N0} ({EcstasyAmount})" );
         }
-        
+
         if ( DmtAmount > 0 ) {
             lines.Add( $"Dmt: {1000:N0} ({DmtAmount})" );
         }
