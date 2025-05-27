@@ -12,6 +12,7 @@
     <ItemGroup>
       <PackageReference Include="Discord.Net" Version="3.17.4" />
       <PackageReference Include="Discord.Net.Interactions" Version="3.17.4" />
+      <PackageReference Include="HoldemPoker.Evaluator" Version="1.0.1" />
       <PackageReference Include="libsodium" Version="1.0.20.1" />
       <PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.5" />
       <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.5" />
