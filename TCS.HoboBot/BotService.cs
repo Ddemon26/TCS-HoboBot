@@ -9,6 +9,7 @@ using TCS.HoboBot.Data;
 using TCS.HoboBot.Modules;
 using TCS.HoboBot.Modules.CasinoGames.Slots;
 using TCS.HoboBot.Modules.DrugDealer;
+using TCS.HoboBot.Modules.Util;
 
 namespace TCS.HoboBot;
 
@@ -137,6 +138,7 @@ public class BotService : IHostedService, IDisposable {
         await PlayersProperties.SaveAsync();
         await PlayersStashes.SaveAsync();
         await CasinoManager.SaveAsync();
+        await WeaponShop.SaveAsync();
 
         //await StaticShitterFile.SaveAsync();
 
@@ -155,7 +157,7 @@ public class BotService : IHostedService, IDisposable {
         await PlayersProperties.LoadAsync( m_client.Guilds );
         await PlayersStashes.LoadAsync( m_client.Guilds );
         await CasinoManager.LoadAsync( m_client.Guilds );
-
+        await WeaponShop.LoadWeapons( m_client.Guilds );
         //await StaticShitterFile.LoadAsync();
 
 
