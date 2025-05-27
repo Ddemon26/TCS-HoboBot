@@ -1,7 +1,13 @@
 ﻿using System.Collections.Concurrent;
 namespace TCS.HoboBot.Data;
 
-public enum CooldownKind { Beg, Job, Rob, Prostitution, Versus }    
+public enum CooldownKind {
+    Beg, 
+    Job, 
+    Rob, 
+    Prostitution, 
+    Versus,
+}    
 public static class Cooldowns {
     // Outer key = guild, inner key = user, value = next-allowed time
     static readonly ConcurrentDictionary<
