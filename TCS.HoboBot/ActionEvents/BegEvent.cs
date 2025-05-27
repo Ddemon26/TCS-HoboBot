@@ -548,8 +548,10 @@ public static class BegEvents {
 
         foreach (var e in Events) {
             tally += e.Weight;
-            if ( pick >= tally ) continue;
-            
+            if ( pick >= tally ) {
+                continue;
+            }
+
             float delta = e.Delta();
             return (delta, e.Story( delta ));
         }
