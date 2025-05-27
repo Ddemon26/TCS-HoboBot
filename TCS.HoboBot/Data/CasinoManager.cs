@@ -69,8 +69,9 @@ public static class CasinoManager {
         amount = 0f;
         type = default;
 
-        if ( !JackPotsCache.TryGetValue( guildId, out var jp ) || bet <= 0 )
+        if ( !JackPotsCache.TryGetValue( guildId, out var jp ) || bet <= 0 ) {
             return false;
+        }
 
         // Priority order: Mega → Progressive → Mini
         foreach (var tier in new[] { JackpotType.Mega, JackpotType.Minor, JackpotType.Mini }) {
@@ -129,11 +130,14 @@ public static class CasinoManager {
         JackPotsCache.Clear();
         foreach (var g in guilds) {
             string path = GetFilePath( g.Id );
-            if ( !File.Exists( path ) ) continue;
+            if ( !File.Exists( path ) ) {
+                continue;
+            }
 
             string json = await File.ReadAllTextAsync( path );
-            if ( Deserialize<JackPots>( json ) is { } loaded )
+            if ( Deserialize<JackPots>( json ) is { } loaded ) {
                 JackPotsCache[g.Id] = loaded;
+            }
         }
     }
 
