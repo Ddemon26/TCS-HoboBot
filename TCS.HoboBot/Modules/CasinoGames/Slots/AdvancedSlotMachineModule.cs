@@ -22,7 +22,7 @@ namespace TCS.HoboBot.Modules.CasinoGames.Slots {
         const int MINIGAME_TRIGGER_COUNT = 4;
         const float MINIGAME_ICON_BOOST_CHANCE = 35f;
 
-        static readonly IReadOnlyDictionary<AdvancedSlotIcon, string> IconToEmojiMap =
+        public static readonly IReadOnlyDictionary<AdvancedSlotIcon, string> IconToEmojiMap =
             new Dictionary<AdvancedSlotIcon, string> {
                 { AdvancedSlotIcon.Nine, "🍒" }, { AdvancedSlotIcon.Ten, "🍋" }, { AdvancedSlotIcon.Jack, "♣️" },
                 { AdvancedSlotIcon.Queen, "♦️" }, { AdvancedSlotIcon.King, "♥️" }, { AdvancedSlotIcon.Ace, "7️⃣" },
@@ -39,7 +39,7 @@ namespace TCS.HoboBot.Modules.CasinoGames.Slots {
             { AdvancedSlotIcon.MiniGame, 4.8 }
         };
 
-        static readonly Dictionary<AdvancedSlotIcon, IReadOnlyDictionary<int, decimal>> FinalLinePayouts =
+        public static readonly Dictionary<AdvancedSlotIcon, IReadOnlyDictionary<int, decimal>> FinalLinePayouts =
             new() {
                 { AdvancedSlotIcon.Nine, new Dictionary<int, decimal> { { 2, 0.4m }, { 3, 0.5m }, { 4, 1.0m }, { 5, 1.4m } } },
                 { AdvancedSlotIcon.Ten, new Dictionary<int, decimal> { { 2, 0.4m }, { 3, 0.5m }, { 4, 1.0m }, { 5, 1.4m } } },
@@ -54,7 +54,7 @@ namespace TCS.HoboBot.Modules.CasinoGames.Slots {
                 { AdvancedSlotIcon.Wild, new Dictionary<int, decimal> { { 2, 1.5m }, { 3, 2.5m }, { 4, 3.5m }, { 5, 4.0m } } },
             };
 
-        static readonly Dictionary<int, decimal> FixedScatterPayouts = new() {
+        public static readonly Dictionary<int, decimal> FixedScatterPayouts = new() {
             { 2, 2m }, { 3, 3m }, { 4, 5m }, { 5, 10m } 
         };
 
@@ -71,7 +71,7 @@ namespace TCS.HoboBot.Modules.CasinoGames.Slots {
             }
         }
 
-        static readonly Dictionary<int, decimal> MiniGamePayouts = new() {
+        public static readonly Dictionary<int, decimal> MiniGamePayouts = new() {
             { 5, 2m }, { 6, 2.5m }, { 7, 3m }, { 8, 3.5m }, { 9, 4m }, { 10, 5m }, { 11, 6m }, { 12, 7m },
             { 13, 8m }, { 14, 9.5m }, { 15, 11m }, { 16, 13m }, { 17, 15m },
             { 18, 18m }, { 19, 22m }, { 20, 27m }, { 21, 35m }, { 22, 45m },
@@ -83,20 +83,27 @@ namespace TCS.HoboBot.Modules.CasinoGames.Slots {
 
 
         static decimal GetAdjustedSymbolPayout(AdvancedSlotIcon symbol, int count) {
-            if ( FinalLinePayouts.TryGetValue( symbol, out var payouts ) && payouts.TryGetValue( count, out var payout ) )
+            if ( FinalLinePayouts.TryGetValue( symbol, out var payouts ) && payouts.TryGetValue( count, out var payout ) ) {
                 return payout;
+            }
+
             return 0m;
         }
 
         static decimal GetAdjustedScatterPayout(int count) {
-            if ( FixedScatterPayouts.TryGetValue( count, out var payout ) )
+            if ( FixedScatterPayouts.TryGetValue( count, out var payout ) ) {
                 return payout;
+            }
+
             return 0m;
         }
 
         static List<List<int>> GetPaylines(int rows, int cols) {
             var lines = new List<List<int>>();
-            if ( cols != 5 ) return lines;
+            if ( cols != 5 ) {
+                return lines;
+            }
+
             for (var r = 0; r < rows; r++) lines.Add( Enumerable.Repeat( r, cols ).ToList() );
             if ( rows >= 3 ) {
                 lines.Add( new List<int> { 0, 1, 2, 1, 0 } );
@@ -151,14 +158,19 @@ namespace TCS.HoboBot.Modules.CasinoGames.Slots {
                     }
                 }
 
-                if ( symbolToMatch == AdvancedSlotIcon.Scatter || symbolToMatch == AdvancedSlotIcon.MiniGame ) continue;
+                if ( symbolToMatch == AdvancedSlotIcon.Scatter || symbolToMatch == AdvancedSlotIcon.MiniGame ) {
+                    continue;
+                }
 
                 var streak = 0;
                 for (var c = 0; c < cols; c++) {
                     var currentSymbolOnLine = grid[linePath[c]][c];
-                    if ( currentSymbolOnLine == symbolToMatch || currentSymbolOnLine == AdvancedSlotIcon.Wild )
+                    if ( currentSymbolOnLine == symbolToMatch || currentSymbolOnLine == AdvancedSlotIcon.Wild ) {
                         streak++;
-                    else break;
+                    }
+                    else {
+                        break;
+                    }
                 }
 
                 if ( streak >= 2 ) {
@@ -186,7 +198,9 @@ namespace TCS.HoboBot.Modules.CasinoGames.Slots {
             for (var r = 0; r < rows; r++) {
                 for (var c = 0; c < cols; c++) {
                     gridDisplay.Append( GetEmoji( grid[r][c] ) );
-                    if ( c < cols - 1 ) gridDisplay.Append( " | " );
+                    if ( c < cols - 1 ) {
+                        gridDisplay.Append( " | " );
+                    }
                 }
 
                 gridDisplay.Append( '\n' );
@@ -223,7 +237,10 @@ namespace TCS.HoboBot.Modules.CasinoGames.Slots {
                 return false;
             }
 
-            if ( bet > MAX_BET_ADV ) bet = MAX_BET_ADV;
+            if ( bet > MAX_BET_ADV ) {
+                bet = MAX_BET_ADV;
+            }
+
             if ( PlayersWallet.GetBalance( Context.Guild.Id, Context.User.Id ) < bet ) {
                 error = $"{Context.User.Mention} doesn’t have enough cash! Balance: ${PlayersWallet.GetBalance( Context.Guild.Id, Context.User.Id ):C2}. Bet: ${bet:C2}.";
                 return false;
@@ -252,7 +269,9 @@ namespace TCS.HoboBot.Modules.CasinoGames.Slots {
                 }
             }
 
-            if ( !isSpinAgain ) await DeferAsync( ephemeral: true );
+            if ( !isSpinAgain ) {
+                await DeferAsync( ephemeral: true );
+            }
 
             PlayersWallet.SubtractFromBalance( Context.Guild.Id, Context.User.Id, currentBet );
             var spin = SpinGrid( rows, cols );
@@ -371,10 +390,12 @@ namespace TCS.HoboBot.Modules.CasinoGames.Slots {
             // ... (logic for newLockedReelData remains the same)
             string newLockedReelData = lockedReelData;
             var currentReelIconIds = string.Join( ",", newReel.Select( i => (int)i ) );
-            if ( string.IsNullOrEmpty( newLockedReelData ) )
+            if ( string.IsNullOrEmpty( newLockedReelData ) ) {
                 newLockedReelData = currentReelIconIds;
-            else
+            }
+            else {
                 newLockedReelData += $"-{currentReelIconIds}";
+            }
 
 
             // The modification logic is now wrapped in a Task to be passed to the retry helper
@@ -458,10 +479,12 @@ namespace TCS.HoboBot.Modules.CasinoGames.Slots {
             var reel = new AdvancedSlotIcon[ rows ];
             var nonSpecialSymbols = SymbolWeights.Keys.Where( s => s != AdvancedSlotIcon.Scatter && s != AdvancedSlotIcon.Wild && s != AdvancedSlotIcon.MiniGame ).ToList();
             for (int r = 0; r < rows; r++) {
-                if ( Rng.Next( 100 ) < MINIGAME_ICON_BOOST_CHANCE )
+                if ( Rng.Next( 100 ) < MINIGAME_ICON_BOOST_CHANCE ) {
                     reel[r] = AdvancedSlotIcon.MiniGame;
-                else
+                }
+                else {
                     reel[r] = nonSpecialSymbols[Rng.Next( nonSpecialSymbols.Count )];
+                }
             }
 
             return reel;
