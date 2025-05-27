@@ -100,21 +100,6 @@ public static class PlayersWallet {
         foreach (KeyValuePair<ulong, ConcurrentDictionary<ulong, float>> kv in GlobalPlayerWallets) {
             await SaveAsync( kv.Key );
         }
-        
-        foreach (var innerDict in GlobalPlayerWallets.Values)
-        {
-            innerDict.Clear();
-        }
-
-        GlobalPlayerWallets.Clear();
-        
-        // clear the PlayerWallets cache
-        foreach (var innerDict in PlayerWallets.Values)
-        {
-            innerDict.Clear();
-        }
-        
-        PlayerWallets.Clear();
     }
 
     static async Task SaveAsync(ulong guildId) {
@@ -160,20 +145,6 @@ public static class PlayersWallet {
 
     public static async Task LoadAsync(IReadOnlyCollection<SocketGuild> clientGuilds) {
         const string root = "Data";
-        // clear the cache
-        foreach (var innerDict in GlobalPlayerWallets.Values)
-        {
-            innerDict.Clear();
-        }
-
-        GlobalPlayerWallets.Clear();
-        
-        foreach (var innerDict in PlayerWallets.Values)
-        {
-            innerDict.Clear();
-        }
-        
-        PlayerWallets.Clear();
 
         foreach (var guild in clientGuilds) {
             string dir = Path.Combine( root, guild.Id.ToString() );
