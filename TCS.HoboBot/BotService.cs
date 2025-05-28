@@ -22,6 +22,8 @@ public class BotService : IHostedService, IDisposable {
     const bool IS_GLOBAL_REGISTRY = false;
 
     readonly List<ulong> m_guildIds = [];
+    Timer? m_timer;
+    const float SAVE_INTERVAL_MINUTES = 30f;
 
     public BotService(
         DiscordSocketClient client,
@@ -81,12 +83,12 @@ public class BotService : IHostedService, IDisposable {
 
                     restGuildUsers.Add( guild, members.ToArray() );
                 }
-                
+
                 //log every username in every guild
                 foreach (KeyValuePair<ulong, RestGuildUser[]> guild in restGuildUsers) {
-                    Console.WriteLine($"Guild: {guild.Key}");
+                    Console.WriteLine( $"Guild: {guild.Key}" );
                     foreach (var user in guild.Value) {
-                        Console.WriteLine($"User: {user.DisplayName} ({user.Id})");
+                        Console.WriteLine( $"User: {user.DisplayName} ({user.Id})" );
                     }
                 }
             }
@@ -113,6 +115,13 @@ public class BotService : IHostedService, IDisposable {
 
         AppDomain.CurrentDomain.ProcessExit += m_crashHandler;
 
+        m_timer = new Timer(
+            SaveDataPeriodically,
+            null,
+            TimeSpan.Zero,
+            TimeSpan.FromMinutes( SAVE_INTERVAL_MINUTES )
+        );
+
         await m_client.LoginAsync( TokenType.Bot, token );
         await m_client.StartAsync();
     }
@@ -121,35 +130,20 @@ public class BotService : IHostedService, IDisposable {
         SaveDataOnShutdown().GetAwaiter().GetResult();
     }
 
-    // EventHandler? m_crashHandler (object? sender, EventArgs e) {
-    //     Console.WriteLine("Process exiting – saving data");
-    //     SaveDataOnShutdown().GetAwaiter().GetResult();
-    // }
-
     public async Task StopAsync(CancellationToken ct) {
         Console.WriteLine( "Shutting down..." );
+        m_timer?.Change( Timeout.Infinite, 0 ); // Stop the timer from firing again
         await SaveDataOnShutdown();
         await m_client.LogoutAsync();
         await m_client.StopAsync();
     }
 
-    public async Task SaveDataOnShutdown() {
+    public static async Task SaveDataOnShutdown() {
         await PlayersWallet.SaveAsync();
         await PlayersProperties.SaveAsync();
         await PlayersStashes.SaveAsync();
         await CasinoManager.SaveAsync();
         await WeaponShop.SaveAsync();
-
-        //await StaticShitterFile.SaveAsync();
-
-        //SlotsManager.AddToJackpots( 1000 );
-        // foreach (var guild in m_client.Guilds) {
-        //     await PlayersWallet.SaveAsync( guild.Id );
-        //     //await PlayersProperties.SaveAsync( guild.Id );
-        //     //await PlayersStashes.SaveAsync( guild.Id );
-        //
-        //     //await CasinoManager.SaveJackpotsAsync( guild.Id );
-        // }
     }
 
     async Task LoadDataAsync() {
@@ -158,27 +152,39 @@ public class BotService : IHostedService, IDisposable {
         await PlayersStashes.LoadAsync( m_client.Guilds );
         await CasinoManager.LoadAsync( m_client.Guilds );
         await WeaponShop.LoadWeapons( m_client.Guilds );
-        //await StaticShitterFile.LoadAsync();
+    }
 
-
-        // foreach (var guild in m_client.Guilds) {
-        //     await PlayersWallet.LoadAsync( guild.Id );
-        //     //await PlayersProperties.LoadAsync( guild.Id );
-        //     //await PlayersStashes.LoadAsync( guild.Id );
-        //
-        //     //await CasinoManager.LoadJackpotsAsync( guild.Id );
-        // }
+    void SaveDataPeriodically(object? state) {
+        Console.WriteLine( "Performing periodic data save..." );
+        try {
+            // Since the save methods are async, we need to wait for them to complete.
+            // .GetAwaiter().GetResult() is one way to do this from a synchronous method.
+            PlayersWallet.SaveAsync().GetAwaiter().GetResult();
+            PlayersProperties.SaveAsync().GetAwaiter().GetResult();
+            PlayersStashes.SaveAsync().GetAwaiter().GetResult();
+            CasinoManager.SaveAsync().GetAwaiter().GetResult();
+            WeaponShop.SaveAsync().GetAwaiter().GetResult();
+            Console.WriteLine( "✅ Periodic data save complete." );
+        }
+        catch (Exception ex) {
+            Console.WriteLine( $"Error during periodic data save: {ex.Message}" );
+        }
     }
 
     static Task LogAsync(LogMessage msg) {
         Console.WriteLine( msg );
         return Task.CompletedTask;
     }
+
     public void Dispose() {
+        Console.WriteLine( "Disposing BotService..." );
         // Unsubscribe from events
         m_client.Log -= LogAsync;
         m_interactions.Log -= LogAsync;
         AppDomain.CurrentDomain.ProcessExit -= m_crashHandler;
+
+        // Dispose Timer if it exists
+        m_timer?.Dispose();
 
         // Clean up Discord resources
         m_client.Dispose();
