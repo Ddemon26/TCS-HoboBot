@@ -12,30 +12,20 @@ namespace TCS.HoboBot.Modules.CasinoGames {
         // Abstract properties to be implemented by derived classes
         protected abstract string GameName { get; }
         protected abstract string GameCommandPrefix { get; } // Used for button IDs, e.g., "slots"
-        protected abstract IReadOnlyList<string> SymbolToEmojiMap { get; } // Index by TSymbol cast to int
-        protected abstract IReadOnlyList<TSymbol> Symbols { get; } // All possible symbols
+        //protected abstract IReadOnlyList<string> SymbolToEmojiMap { get; } // Index by TSymbol cast to int
+        protected abstract  IReadOnlyDictionary<TSymbol, string> IconToEmojiMap { get; } // Maps TSymbol to emoji strings
+        //protected abstract IReadOnlyList<TSymbol> Symbols { get; } // All possible symbols
         protected abstract int NumberOfReels { get; }
         protected virtual int NumberOfRows => 1; // Default for non-grid slots
         protected virtual float MaxBet => 10f;
         protected virtual float MinBet => 0.25f;
 
         // Abstract methods for game-specific logic
-        protected abstract TSymbol[][] SpinReelsInternal();
-        protected abstract (decimal payoutMultiplier, string winDescription) CalculatePayoutInternal(TSymbol[][] currentSpin, float bet);
+        public abstract TSymbol[][] SpinReelsInternal();
+        public abstract (decimal payoutMultiplier, string winDescription) CalculatePayoutInternal(TSymbol[][] currentSpin, float bet);
         protected abstract Embed BuildGameEmbedInternal(SocketUser user, TSymbol[][] currentSpin, float bet, decimal payoutMultiplier, string winDescription, decimal totalWinnings);
-
-        protected string GetEmojiForSymbol(TSymbol symbol) {
-            var symbolIndex = Convert.ToInt32( symbol, CultureInfo.InvariantCulture );
-            if ( symbolIndex >= 0 && symbolIndex < SymbolToEmojiMap.Count ) {
-                return SymbolToEmojiMap[symbolIndex];
-            }
-
-            return "❓"; // Fallback emoji
-        }
-
-        protected TSymbol GetRandomSymbol() {
-            return Symbols[Rng.Next( Symbols.Count )];
-        }
+        
+        protected string GetEmojiForSymbol(TSymbol symbol) => IconToEmojiMap.GetValueOrDefault( symbol, "❓" ); // Fallback emoji if not found
 
         protected virtual async Task PlaySlotsAsync(float bet, bool isSpinAgainRequest = false, SocketInteraction? interactionToModify = null) {
             float processingBet = bet; // Use a local variable for processing
@@ -109,7 +99,7 @@ namespace TCS.HoboBot.Modules.CasinoGames {
             }
 
             if ( PlayersWallet.GetBalance( Context.Guild.Id, Context.User.Id ) < bet ) {
-                error = $"{Context.User.Mention} doesn’t have enough cash! Your balance is ${PlayersWallet.GetBalance( Context.Guild.Id, Context.User.Id ):C2}. You tried to bet ${bet:C2}.";
+                error = $"{Context.User.Mention} does’t have enough cash! Your balance is ${PlayersWallet.GetBalance( Context.Guild.Id, Context.User.Id ):C2}. You tried to bet ${bet:C2}.";
                 return false;
             }
 
@@ -160,29 +150,13 @@ namespace TCS.HoboBot.Modules.CasinoGames {
                 decimal profitAmount = totalWinningsValue - (decimal)bet;
                 if ( profitAmount > 0 ) // Only announce if there's actual profit
                 {
-                    await AnnouncePublicWin( Context.User, profitAmount );
+                    await AnnouncePublicWin( Context.User, profitAmount, payoutMultiplier );
                 }
             }
-
-            // Announce jackpot wins
-            /*if ( CasinoManager.GetJackpot( Context.Guild.Id, JackpotType.MegaJackpot, out float jackpot ) ) {
-                var msg = $"🎉 {Context.User.Mention} has hit the **Mega Jackpot** of **{jackpot:C2}** on {GameName}!";
-                await Context.Channel.SendMessageAsync( msg ); // Send as a new message to the channel
-                return;
-            }
-            if ( CasinoManager.GetJackpot( Context.Guild.Id, JackpotType.ProgressiveJackpot, out jackpot ) ) {
-                var msg = $"🎉 {Context.User.Mention} has hit the **Progressive Jackpot** of **{jackpot:C2}** on {GameName}!";
-                await Context.Channel.SendMessageAsync( msg ); // Send as a new message to the channel
-                return;
-            }
-            if ( CasinoManager.GetJackpot( Context.Guild.Id, JackpotType.MiniJackpot, out jackpot ) ) {
-                var msg = $"🎉 {Context.User.Mention} has hit the **Mini Jackpot** of **{jackpot:C2}** on {GameName}!";
-                await Context.Channel.SendMessageAsync( msg ); // Send as a new message to the channel
-            }*/
         }
 
-        protected virtual async Task AnnouncePublicWin(SocketUser user, decimal profitAmount) {
-            var msg = $"🎰 {user.Mention} wins **{profitAmount:C2}** on {GameName}!";
+        protected virtual async Task AnnouncePublicWin(SocketUser user, decimal profitAmount, decimal payoutMultiplier) {
+            var msg = $"🎰 {user.Mention} wins **{profitAmount:C2}** with a multiplier of **{payoutMultiplier}x** on {GameName}!";
             await Context.Channel.SendMessageAsync( msg ); // Send as a new message to the channel
         }
     }
