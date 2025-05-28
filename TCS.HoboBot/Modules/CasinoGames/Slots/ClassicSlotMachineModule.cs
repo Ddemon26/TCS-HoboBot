@@ -4,39 +4,90 @@ using Discord.WebSocket;
 using TCS.HoboBot.Data;
 
 namespace TCS.HoboBot.Modules.CasinoGames {
-    public enum ClassicSlotIcon { Cherry, Lemon, Orange, Plum, Bell, Hotdog, Bar, Seven }
+    public enum ClassicSlotIcon {
+        Cherry, 
+        // Lemon, 
+        // Orange,
+        // Plum, 
+        Bell, 
+        //Hotdog, 
+        Bar,
+        Seven,
+        Wild,
+    }
 
     public sealed class ClassicSlotMachineModule : BaseSlotMachineModule<ClassicSlotIcon> {
         protected override string GameName => "Classic Slots";
         protected override string GameCommandPrefix => "slots";
+        protected override IReadOnlyDictionary<ClassicSlotIcon, string> IconToEmojiMap => EmojiMap;
 
-        static readonly IReadOnlyList<string> Emojis = [
-            "🍒", "🍋", "🍊", "🍑", "🔔", "🌭", "🍷", "7️⃣",
+        static readonly IReadOnlyDictionary<ClassicSlotIcon, string> EmojiMap = new Dictionary<ClassicSlotIcon, string> {
+            { ClassicSlotIcon.Cherry, "🍒" },
+            // { ClassicSlotIcon.Lemon, "🍋" },
+            // { ClassicSlotIcon.Orange, "🍊" },
+            // { ClassicSlotIcon.Plum, "🍑" },
+            { ClassicSlotIcon.Bell, "🔔" },
+            //{ ClassicSlotIcon.Hotdog, "🌭" },
+            { ClassicSlotIcon.Bar, "🍷" },
+            { ClassicSlotIcon.Seven, "7️⃣" },
+            { ClassicSlotIcon.Wild, "🃏" },
+        };
+        
+        static readonly List<List<(int r, int c)>> Paylines = [
+            new() { (0, 0), (0, 1), (0, 2) },
         ];
-        protected override IReadOnlyList<string> SymbolToEmojiMap => Emojis;
-
-        static readonly IReadOnlyList<ClassicSlotIcon> Icons =
-            Enum.GetValues( typeof(ClassicSlotIcon) ).Cast<ClassicSlotIcon>().ToList().AsReadOnly();
-        protected override IReadOnlyList<ClassicSlotIcon> Symbols => Icons;
+        
 
         protected override int NumberOfReels => 3;
+        
 
-        // Post-spin RTP multiplier
-        const float RTP = 0.96f;
-
-        // Scale pre-RTP to exactly 1.0: 1 / 1.744140625 ≈ 0.573348264277716
-        const decimal SCALING_FACTOR = 0.573348264277716m;
-
-        // Base payouts scaled so that pre-RTP = 100%; after RTP=1.2, long-term payback = 120%
-        static readonly Dictionary<string, decimal> BasePayoutMultipliers = new() {
-            { "ThreeSevens", 120m * SCALING_FACTOR }, // ≈ 68.8018
-            { "ThreeBars", 60m * SCALING_FACTOR }, // ≈ 34.4009
-            { "ThreeHotdogs", 40m * SCALING_FACTOR }, // ≈ 22.9339
-            { "ThreeBells", 25m * SCALING_FACTOR }, // ≈ 14.3337
-            { "ThreeFruits", 15m * SCALING_FACTOR }, // ≈ 8.6002
-            { "TwoSevens", 7m * SCALING_FACTOR }, // ≈ 4.0134
-            { "TwoOfAKind", 3m * SCALING_FACTOR }, // ≈ 1.7200
+        static readonly Dictionary<ClassicSlotIcon, double> SymbolWeights = new() {
+            { ClassicSlotIcon.Cherry, 20 },   // more common
+            // { ClassicSlotIcon.Lemon, 20 }, 
+            // { ClassicSlotIcon.Orange, 18 }, 
+            // { ClassicSlotIcon.Plum, 15 },  
+            { ClassicSlotIcon.Bell, 14 },     // less common
+            //{ ClassicSlotIcon.Hotdog, 10 },   // rare
+            { ClassicSlotIcon.Bar, 10 },       // rare
+            { ClassicSlotIcon.Seven, 5.5 },     // very rare
+            { ClassicSlotIcon.Wild, 15 },    // very rare, acts as a joker
         };
+
+        static readonly Dictionary<ClassicSlotIcon, decimal> BasePayoutMultipliers = new() {
+            { ClassicSlotIcon.Cherry, 1.1m },
+            // { ClassicSlotIcon.Lemon, 5.0m },
+            // { ClassicSlotIcon.Orange, 8.0m  },
+            // { ClassicSlotIcon.Plum, 10.0m },
+            { ClassicSlotIcon.Bell, 1.5m },
+            //{ ClassicSlotIcon.Hotdog, 25.0m },
+            { ClassicSlotIcon.Bar, 8.0m },
+            { ClassicSlotIcon.Seven, 10.0m },
+            { ClassicSlotIcon.Wild, 1.25m }, // Wilds pay out more
+        };
+        
+        static readonly double TotalWeight;
+        static readonly List<KeyValuePair<ClassicSlotIcon, double>> CumulativeWeights = [];
+        
+        static decimal GetLinePayoutMultiplier(ClassicSlotIcon symbol) =>
+            BasePayoutMultipliers.GetValueOrDefault( symbol, 0m );
+
+        static ClassicSlotMachineModule() {
+            double cumulative = 0;
+            foreach (KeyValuePair<ClassicSlotIcon, double> kv in SymbolWeights) {
+                cumulative += kv.Value;
+                CumulativeWeights.Add(new KeyValuePair<ClassicSlotIcon, double>(kv.Key, cumulative));
+            }
+            TotalWeight = cumulative;
+        }
+
+        static ClassicSlotIcon GetWeightedRandomSymbol() {
+            double roll = Rng.NextDouble() * TotalWeight;
+            foreach (KeyValuePair<ClassicSlotIcon, double> kv in CumulativeWeights) {
+                if (roll < kv.Value)
+                    return kv.Key;
+            }
+            return CumulativeWeights.Last().Key;
+        }
 
         [SlashCommand( "slots_classic", "Pull a three-reel slot machine." )]
         public async Task SlotsAsync([Summary( description: "Your bet amount" )] float bet) =>
@@ -54,60 +105,95 @@ namespace TCS.HoboBot.Modules.CasinoGames {
             await HandleEndGameAsync();
         }
 
-        protected override ClassicSlotIcon[][] SpinReelsInternal() {
-            ClassicSlotIcon[] row = new ClassicSlotIcon[ NumberOfReels ];
+        public override ClassicSlotIcon[][] SpinReelsInternal() {
+            ClassicSlotIcon[] row = new ClassicSlotIcon[NumberOfReels];
             for (var i = 0; i < NumberOfReels; i++) {
-                row[i] = GetRandomSymbol();
+                row[i] = GetWeightedRandomSymbol();
             }
-
             return [row];
         }
 
-        protected override (decimal payoutMultiplier, string winDescription) CalculatePayoutInternal(
+        public override (decimal payoutMultiplier, string winDescription) CalculatePayoutInternal(
             ClassicSlotIcon[][] currentSpin, float bet
         ) {
-            ClassicSlotIcon[] r = currentSpin[0];
-            var multiplier = 0m;
-            var description = "No win this time.";
+            decimal totalBetMultiplier = 0m;
+            var winDescriptions = new List<string>();
 
-            bool allEqual = r[0] == r[1] && r[1] == r[2];
-            bool allFruits = allEqual &&
-                             (r[0] is ClassicSlotIcon.Cherry or ClassicSlotIcon.Lemon or
-                                 ClassicSlotIcon.Orange or ClassicSlotIcon.Plum);
+            for (var i = 0; i < Paylines.Count; i++) {
+                var path = Paylines[i];
+                var symbols = new[] {
+                    currentSpin[path[0].r][path[0].c],
+                    currentSpin[path[1].r][path[1].c],
+                    currentSpin[path[2].r][path[2].c],
+                };
 
-            if ( allEqual ) {
-                if ( r[0] == ClassicSlotIcon.Seven ) {
-                    multiplier = BasePayoutMultipliers["ThreeSevens"] * (decimal)RTP;
-                    description = $"JACKPOT! Three Sevens {GetEmojiForSymbol( ClassicSlotIcon.Seven )}{GetEmojiForSymbol( ClassicSlotIcon.Seven )}{GetEmojiForSymbol( ClassicSlotIcon.Seven )}!";
-                }
-                else if ( r[0] == ClassicSlotIcon.Bar ) {
-                    multiplier = BasePayoutMultipliers["ThreeBars"] * (decimal)RTP;
-                    description = $"Three Bars {GetEmojiForSymbol( ClassicSlotIcon.Bar )}{GetEmojiForSymbol( ClassicSlotIcon.Bar )}{GetEmojiForSymbol( ClassicSlotIcon.Bar )}!";
-                }
-                else if ( r[0] == ClassicSlotIcon.Hotdog ) {
-                    multiplier = BasePayoutMultipliers["ThreeHotdogs"] * (decimal)RTP;
-                    description = $"Three Hotdogs {GetEmojiForSymbol( ClassicSlotIcon.Hotdog )}{GetEmojiForSymbol( ClassicSlotIcon.Hotdog )}{GetEmojiForSymbol( ClassicSlotIcon.Hotdog )}!";
-                }
-                else if ( r[0] == ClassicSlotIcon.Bell ) {
-                    multiplier = BasePayoutMultipliers["ThreeBells"] * (decimal)RTP;
-                    description = $"Three Bells {GetEmojiForSymbol( ClassicSlotIcon.Bell )}{GetEmojiForSymbol( ClassicSlotIcon.Bell )}{GetEmojiForSymbol( ClassicSlotIcon.Bell )}!";
-                }
-                else if ( allFruits ) {
-                    multiplier = BasePayoutMultipliers["ThreeFruits"] * (decimal)RTP;
-                    description = $"Three {r[0]}s {GetEmojiForSymbol( r[0] )}{GetEmojiForSymbol( r[0] )}{GetEmojiForSymbol( r[0] )}!";
+                if (TryGetWinningSymbol(symbols, out var payingSymbol)) {
+                    decimal lineMultiplier;
+
+                    if (payingSymbol != ClassicSlotIcon.Wild && payingSymbol != ClassicSlotIcon.Cherry) {
+                        int wildCount = symbols.Count(s => s == ClassicSlotIcon.Wild);
+                        // Pure 7-7-7
+                        lineMultiplier = GetLinePayoutMultiplier(payingSymbol) 
+                                         * (wildCount == 0 ? 4m : 1m);
+                    }
+                    else {
+                        lineMultiplier = GetLinePayoutMultiplier(payingSymbol);
+                    }
+
+                    if (lineMultiplier > 0m) {
+                        totalBetMultiplier += lineMultiplier;
+                        winDescriptions.Add(
+                            $"{string.Concat(symbols.Select(GetEmojiForSymbol))} " +
+                            $"({lineMultiplier:0.##}x)"
+                        );
+                    }
                 }
             }
-            else if ( r.Count( icon => icon == ClassicSlotIcon.Seven ) == 2 ) {
-                multiplier = BasePayoutMultipliers["TwoSevens"] * (decimal)RTP;
-                description = $"Two Sevens {GetEmojiForSymbol( ClassicSlotIcon.Seven )}!";
-            }
-            else if ( r.GroupBy( icon => icon ).Any( g => g.Count() == 2 ) ) {
-                var sym = r.GroupBy( icon => icon ).First( g => g.Count() == 2 ).Key;
-                multiplier = BasePayoutMultipliers["TwoOfAKind"] * (decimal)RTP;
-                description = $"Two {sym}s {GetEmojiForSymbol( sym )}!";
+
+            string description = totalBetMultiplier > 0m
+                ? "Hit:" + string.Join(", ", winDescriptions)
+                : "No win this time.";
+
+            return (totalBetMultiplier, description);
+        }
+        
+        /// <summary>
+        /// Returns true – and the symbol that should be paid – if the three positions constitute a win.
+        /// Rules preserved:
+        ///   • Three identical symbols  (AAA or WWW)  
+        ///   • Two identical + one Wild (AXW, AWX, WAX)  
+        ///   • Two Wilds + one symbol   (WWX, WXW, XWW)
+        /// </summary>
+        static bool TryGetWinningSymbol(
+            IReadOnlyList<ClassicSlotIcon> symbols,
+            out ClassicSlotIcon winningSymbol
+        ) {
+            var wild = ClassicSlotIcon.Wild;
+            int wildCount = symbols.Count( s => s == wild );
+
+            // All Wilds
+            if ( wildCount == 3 ) {
+                winningSymbol = wild;
+                return true;
             }
 
-            return (multiplier, description);
+            // No Wilds – must all match
+            if ( wildCount == 0 && symbols[0] == symbols[1] && symbols[1] == symbols[2] ) {
+                winningSymbol = symbols[0];
+                return true;
+            }
+
+            // One or two Wilds – remaining non-Wilds must be identical
+            if ( wildCount is 1 or 2 ) {
+                var nonWild = symbols.First( s => s != wild );
+                if ( symbols.All( s => s == wild || s == nonWild ) ) {
+                    winningSymbol = nonWild;
+                    return true;
+                }
+            }
+
+            winningSymbol = default;
+            return false;
         }
 
         protected override Embed BuildGameEmbedInternal(
