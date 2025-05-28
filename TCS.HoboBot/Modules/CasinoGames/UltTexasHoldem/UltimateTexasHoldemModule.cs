@@ -48,8 +48,7 @@ namespace TCS.HoboBot.Modules.CasinoGames {
                 .SelectMany( type => Enum.GetValues( typeof(CardColor) )
                                  .Cast<CardColor>()
                                  .Select( color => new Card( type, color ) )
-                )
-                .ToList();
+                ).ToList();
 
         public static void Shuffle(this IList<Card> list) {
             int n = list.Count;
@@ -156,22 +155,6 @@ namespace TCS.HoboBot.Modules.CasinoGames {
             int dealerRanking = HoldemHandEvaluator.GetHandRanking( dealerEvalCards );
             var dealerHandCategory = HoldemHandEvaluator.GetHandCategory( dealerRanking );
 
-            // ----------------------- Trips bet (player stayed in) ----------------------
-            /*if ( game.TripsBet > 0 ) {
-                TripsPayouts.TryGetValue( playerHandCategory, out decimal tripsMultiplier );
-
-                if ( tripsMultiplier > 0 ) {
-                    decimal win = game.TripsBet * tripsMultiplier;
-                    totalWinnings += win;
-                    resultBuilder.AppendLine( $"✅ **Trips Bet:** Wins **${win:N2}** ({tripsMultiplier}x)!\n" );
-                }
-                else {
-                    totalWinnings -= game.TripsBet;
-                    resultBuilder.AppendLine( $"❌ **Trips Bet:** You lose ${game.TripsBet:N2}.\n" );
-                }
-            }*/
-            // --------------------------------------------------------------------------
-
             bool dealerQualifies = dealerHandCategory <= PokerHandCategory.OnePair;
 
             if ( playerRanking < dealerRanking ) // player wins
@@ -235,8 +218,12 @@ namespace TCS.HoboBot.Modules.CasinoGames {
                 .WithAuthor( Context.User.GlobalName, Context.User.GetAvatarUrl() )
                 .WithTitle( title )
                 .WithDescription( description )
+                //.WithThumbnailUrl( "https://www.google.com/imgres?q=casino%20icon&imgurl=https%3A%2F%2Fstatic-00.iconduck.com%2Fassets.00%2Fcasino-icon-2048x2048-qpd16ckr.png&imgrefurl=https%3A%2F%2Ficonduck.com%2Ficons%2F161061%2Fcasino&docid=T7Eivj4VPcdv3M&tbnid=vKr95fq_aL7STM&vet=12ahUKEwiq5aPJvMWNAxXCMDQIHTSmDUMQM3oECBgQAA..i&w=2048&h=2048&hcb=2&ved=2ahUKEwiq5aPJvMWNAxXCMDQIHTSmDUMQM3oECBgQAA" ) // Replace with actual thumbnail URL
+                // .WithImageUrl( "https://cdn.discordapp.com/attachments/1176938074622664764/1278438997009502353/file-3FE6ck7ZFGzpXK9J7RUvldbl.png?ex=68376699&is=68361519&hm=9819c70dcc3cb8baffe31e674f0a5d7fe701b2a1c7ebb1f16feda78b9b816f22&" ) // Replace with actual image URL
+                // .WithUrl("https://example.com")
+                .WithCurrentTimestamp()
                 .WithColor( color )
-                .WithFooter( footer );
+                .WithFooter( footer, Context.User.GetAvatarUrl() );
 
             if ( game.PlayerHand.Count != 0 ) {
                 embed.AddField( "Your Cards", game.GetHandString( game.PlayerHand ), true );
