@@ -24,7 +24,7 @@ public static class CasinoManager {
         [JackpotType.Mini] = new TierSetting(1.0 / 5_000, 10_000, 10, 10_000f, 0.20),
     };
 
-    const double CUT = 0.01;   // 5 %
+    const double CUT = 0.01;   // 1% of each wager goes to the jackpot pools
 
     /* ───────────────────────  DATA STRUCTURES  ────────────────────── */
 
