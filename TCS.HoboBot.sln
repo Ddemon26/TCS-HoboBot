@@ -2,7 +2,7 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TCS.HoboBot", "TCS.HoboBot\TCS.HoboBot.csproj", "{D81BD053-2EF3-452D-AF9A-090E39C01453}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HoboBotTest", "HoboBotTest\HoboBotTest.csproj", "{F162D5EF-6C87-4A2B-8803-C1C453189C66}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tests", "Tests\Tests.csproj", "{F162D5EF-6C87-4A2B-8803-C1C453189C66}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
