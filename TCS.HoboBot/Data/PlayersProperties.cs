@@ -4,7 +4,6 @@ using Discord.WebSocket;
 namespace TCS.HoboBot.Modules;
 
 public static class PlayersProperties {
-    //public static readonly ConcurrentDictionary<ulong, int[]> OwnedProperties = new();
     static readonly ConcurrentDictionary<ulong, Dictionary<ulong, int[]>> GlobalOwnedProperties = new();
 
     public static readonly ConcurrentDictionary<ulong, DateTimeOffset> NextCollect = new();
@@ -80,7 +79,7 @@ public static class PlayersProperties {
         );
 
         if ( !guildProps.TryGetValue( userId, out var idx ) ) {
-            return Array.Empty<MonopolyProperty>();
+            return [];
         }
 
         return idx.Select( i => Properties[i] ).ToArray();
@@ -100,7 +99,7 @@ public static class PlayersProperties {
             idx = idx.Append( propertyIndex ).ToArray();
         }
         else {
-            idx = new[] { propertyIndex };
+            idx = [propertyIndex];
         }
 
         guildProps[userId] = idx;
@@ -126,9 +125,6 @@ public static class PlayersProperties {
         foreach (KeyValuePair<ulong, Dictionary<ulong, int[]>> kv in GlobalOwnedProperties) {
             await SaveAsync( kv.Key );
         }
-        
-        // clear the cache
-        GlobalOwnedProperties.Clear();
     }
 
     public static async Task SaveAsync(ulong guildId) {
@@ -145,8 +141,6 @@ public static class PlayersProperties {
 
     public static async Task LoadAsync(IReadOnlyCollection<SocketGuild> clientGuilds) {
         const string root = "Data";
-        // clear the cache
-        GlobalOwnedProperties.Clear();
 
         foreach (var guild in clientGuilds) {
             string dir = Path.Combine( root, guild.Id.ToString() );
@@ -166,38 +160,7 @@ public static class PlayersProperties {
             GlobalOwnedProperties[guild.Id] = loaded;
         }
     }
-
-    /*public static async Task LoadAsync() {
-        if ( !File.Exists( FilePath ) ) {
-            return;
-        }
-
-        string json = await File.ReadAllTextAsync( FilePath );
-        ConcurrentDictionary<ulong, int[]>? loaded = Deserialize<ConcurrentDictionary<ulong, int[]>>( json );
-        if ( loaded is null ) {
-            return;
-        }
-
-        foreach (KeyValuePair<ulong, int[]> kv in loaded)
-            OwnedProperties[kv.Key] = kv.Value;
-    }*/
-
-    /*public static async Task LoadAsync(ulong guildId) {
-        string path = GetFilePath( guildId );
-        if ( !File.Exists( path ) ) {
-            return;
-        }
-
-        string json = await File.ReadAllTextAsync( path );
-        ConcurrentDictionary<ulong, int[]>? loaded = Deserialize<ConcurrentDictionary<ulong, int[]>>( json );
-        if ( loaded is null ) {
-            return;
-        }
-
-        foreach (KeyValuePair<ulong, int[]> kv in loaded)
-            OwnedProperties[kv.Key] = kv.Value;
-    }*/
-
+    
     static readonly JsonSerializerOptions WriteOptions = new() {
         WriteIndented = true,
     };
