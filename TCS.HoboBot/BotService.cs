@@ -23,7 +23,7 @@ public class BotService : IHostedService, IDisposable {
 
     readonly List<ulong> m_guildIds = [];
     Timer? m_timer;
-    const float SAVE_INTERVAL_MINUTES = 30f;
+    const float SAVE_INTERVAL = 30f;
 
     public BotService(
         DiscordSocketClient client,
@@ -65,7 +65,7 @@ public class BotService : IHostedService, IDisposable {
                     Console.WriteLine( $"Guild: {guild.Name} ({guild.Id})" );
                 }
 
-                var restGuildUsers = new Dictionary<ulong, RestGuildUser[]>();
+                Dictionary<ulong, RestGuildUser[]> restGuildUsers = new();
 
                 foreach (ulong guild in m_guildIds) {
                     Console.WriteLine( $"Registering to guild {guild}" );
@@ -119,7 +119,7 @@ public class BotService : IHostedService, IDisposable {
             SaveDataPeriodically,
             null,
             TimeSpan.Zero,
-            TimeSpan.FromMinutes( SAVE_INTERVAL_MINUTES )
+            TimeSpan.FromMinutes( SAVE_INTERVAL )
         );
 
         await m_client.LoginAsync( TokenType.Bot, token );
