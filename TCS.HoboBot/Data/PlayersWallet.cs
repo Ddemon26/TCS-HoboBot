@@ -62,37 +62,24 @@ public static class PlayersWallet {
     }
 
     public static void SubtractFromBalance(ulong guildId, ulong userId, float amount) {
+        // Convert any negative amount to a positive value.
+        amount = MathF.Abs(amount);
+
         ConcurrentDictionary<ulong, float> guildWallets = GlobalPlayerWallets.GetOrAdd(
             guildId,
             _ => new ConcurrentDictionary<ulong, float>()
         );
 
-        float newAmount = guildWallets.TryGetValue( userId, out float old )
-            ? MathF.Max( 0f, old - amount )
+        float newAmount = guildWallets.TryGetValue(userId, out float old)
+            ? MathF.Max(0f, old - amount)
             : 0f;
-
         guildWallets[userId] = newAmount;
 
-        //subtract from PlayerWallets as well
-        if ( PlayerWallets.TryGetValue( guildId, out ConcurrentDictionary<ulong, PlayerWallet>? playerWallets ) ) {
-            if ( playerWallets.TryGetValue( userId, out var playerWallet ) ) {
-                playerWallet.Cash = MathF.Max( 0f, playerWallet.Cash - amount );
+        // Subtract from PlayerWallets as well
+        if (PlayerWallets.TryGetValue(guildId, out ConcurrentDictionary<ulong, PlayerWallet>? playerWallets)) {
+            if (playerWallets.TryGetValue(userId, out var playerWallet)) {
+                playerWallet.Cash = MathF.Max(0f, playerWallet.Cash - amount);
             }
-        }
-    }
-
-    public static void ResetBalance(ulong guildId, ulong userId) {
-        ConcurrentDictionary<ulong, float> guildWallets = GlobalPlayerWallets.GetOrAdd(
-            guildId,
-            _ => new ConcurrentDictionary<ulong, float>()
-        );
-
-        guildWallets[userId] = 0f;
-    }
-
-    public static void ResetAllBalances(ulong guildId) {
-        if ( GlobalPlayerWallets.TryGetValue( guildId, out ConcurrentDictionary<ulong, float>? guildWallets ) ) {
-            guildWallets.Clear();
         }
     }
 
