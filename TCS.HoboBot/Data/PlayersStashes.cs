@@ -122,9 +122,6 @@ public static class PlayersStashes {
         foreach (KeyValuePair<ulong, ConcurrentDictionary<ulong, PlayerStash>> kv in GlobalStashCache) {
             await SaveAsync( kv.Key );
         }
-
-        //clear the cache
-        GlobalStashCache.Clear();
     }
 
     static async Task SaveAsync(ulong guildId) {
@@ -141,8 +138,6 @@ public static class PlayersStashes {
 
     public static async Task LoadAsync(IReadOnlyCollection<SocketGuild> clientGuilds) {
         const string root = "Data";
-        // clear the cache
-        GlobalStashCache.Clear();
 
         foreach (var guild in clientGuilds) {
             string dir = Path.Combine( root, guild.Id.ToString() );
