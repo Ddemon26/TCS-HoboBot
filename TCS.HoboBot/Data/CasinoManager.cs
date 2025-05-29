@@ -120,14 +120,9 @@ public static class CasinoManager {
             string json = Serialize( jp );
             await File.WriteAllTextAsync( path, json );
         }
-        
-        // clear the cache
-        JackPotsCache.Clear();
     }
 
     public static async Task LoadAsync(IReadOnlyCollection<SocketGuild> guilds) {
-        // clear the cache
-        JackPotsCache.Clear();
         foreach (var g in guilds) {
             string path = GetFilePath( g.Id );
             if ( !File.Exists( path ) ) {
