@@ -22,4 +22,8 @@
       <PackageReference Include="YoutubeReExplode" Version="7.3.4" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="Modules\CasinoGames\Utils\PlayingCards\" />
+    </ItemGroup>
+
 </Project>
