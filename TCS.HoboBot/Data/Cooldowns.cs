@@ -4,7 +4,7 @@ namespace TCS.HoboBot.Data;
 public enum CooldownKind {
     Beg, 
     Job, 
-    Rob, 
+    Rob,
     Prostitution, 
     Versus,
 }    
