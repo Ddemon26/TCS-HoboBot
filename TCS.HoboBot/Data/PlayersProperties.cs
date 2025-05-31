@@ -41,15 +41,15 @@ public static class PlayersProperties {
         .Select( (property, index) => new { Index = index, Property = property } )
         .ToDictionary( x => x.Index, x => x.Property );
 
-    static readonly string FilePath = "OwnedProperties.json";
+    const string FILE_PATH = "OwnedProperties.json";
 
     static string GetFilePath(ulong guildId) {
-        return Path.Combine( "Data", guildId.ToString(), FilePath );
+        return Path.Combine( "Data", guildId.ToString(), FILE_PATH );
     }
 
     public static int[] GetOwnedPropertiesInt(ulong guildId, ulong userId) {
-        if ( GlobalOwnedProperties.TryGetValue( guildId, out var owned ) ) {
-            if ( owned.TryGetValue( userId, out var idx ) ) {
+        if ( GlobalOwnedProperties.TryGetValue( guildId, out Dictionary<ulong, int[]>? owned ) ) {
+            if ( owned.TryGetValue( userId, out int[]? idx ) ) {
                 return idx;
             }
         }
@@ -59,9 +59,8 @@ public static class PlayersProperties {
     //get all properties
     public static MonopolyProperty[] GetAllProperties() {
         if ( s_allProperties.Length == 0 ) {
-            // Load properties from a file
-            if ( File.Exists( FilePath ) ) {
-                string json = File.ReadAllText( FilePath );
+            if ( File.Exists( FILE_PATH ) ) {
+                string json = File.ReadAllText( FILE_PATH );
                 MonopolyProperty[]? loaded = Deserialize<MonopolyProperty[]>( json );
                 if ( loaded != null ) {
                     s_allProperties = loaded;
@@ -73,12 +72,12 @@ public static class PlayersProperties {
     }
 
     public static MonopolyProperty[] GetOwnedProperties(ulong guildId, ulong userId) {
-        var guildProps = GlobalOwnedProperties.GetOrAdd(
+        Dictionary<ulong, int[]> guildProps = GlobalOwnedProperties.GetOrAdd(
             guildId,
             _ => new Dictionary<ulong, int[]>()
         );
 
-        if ( !guildProps.TryGetValue( userId, out var idx ) ) {
+        if ( !guildProps.TryGetValue( userId, out int[]? idx ) ) {
             return [];
         }
 
@@ -86,12 +85,12 @@ public static class PlayersProperties {
     }
 
     public static void AddProperty(ulong guildId, ulong userId, int propertyIndex) {
-        var guildProps = GlobalOwnedProperties.GetOrAdd(
+        Dictionary<ulong, int[]> guildProps = GlobalOwnedProperties.GetOrAdd(
             guildId,
             _ => new Dictionary<ulong, int[]>()
         );
 
-        if ( guildProps.TryGetValue( userId, out var idx ) ) {
+        if ( guildProps.TryGetValue( userId, out int[]? idx ) ) {
             if ( idx.Contains( propertyIndex ) ) {
                 return; // already owns
             }
@@ -106,12 +105,12 @@ public static class PlayersProperties {
     }
 
     public static void RemoveProperty(ulong guildId, ulong userId, int propertyIndex) {
-        var guildProps = GlobalOwnedProperties.GetOrAdd(
+        Dictionary<ulong, int[]> guildProps = GlobalOwnedProperties.GetOrAdd(
             guildId,
             _ => new Dictionary<ulong, int[]>()
         );
 
-        if ( !guildProps.TryGetValue( userId, out var idx ) || !idx.Contains( propertyIndex ) ) {
+        if ( !guildProps.TryGetValue( userId, out int[]? idx ) || !idx.Contains( propertyIndex ) ) {
             return; // nothing to remove
         }
 
@@ -160,7 +159,7 @@ public static class PlayersProperties {
             GlobalOwnedProperties[guild.Id] = loaded;
         }
     }
-    
+
     static readonly JsonSerializerOptions WriteOptions = new() {
         WriteIndented = true,
     };
