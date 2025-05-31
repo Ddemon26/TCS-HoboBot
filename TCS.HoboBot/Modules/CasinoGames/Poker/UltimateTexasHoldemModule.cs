@@ -140,31 +140,26 @@ namespace TCS.HoboBot.Modules.CasinoGames.Poker {
 
         static void CalculateShowdownResult(UthGameState game, out string result) {
             var resultBuilder = new StringBuilder();
-            //var totalWinnings = 0m;
 
             // --- Evaluate the player’s 7-card hand ---------------------------------
             Card[] playerEvalCards = game.PlayerHand.Concat( game.CommunityCards ).ToArray();
             int playerRanking = HoldemHandEvaluator.GetHandRanking( playerEvalCards );
             var playerHandCategory = HoldemHandEvaluator.GetHandCategory( playerRanking );
-            // string playerHandDesc = HoldemHandEvaluator.GetHandDescription( playerRanking );
 
             // FOLD PATH – player forfeits Ante & Blind, but Trips is still live --------
             if ( game.Folded ) {
                 resultBuilder.AppendLine( "You folded. You lose your Ante and Blind bets." );
-                //totalWinnings = -(game.AnteBet + game.BlindBet);
 
                 if ( game.TripsBet > 0 ) {
                     TripsPayouts.TryGetValue( playerHandCategory, out decimal tripsMultiplier );
 
                     if ( tripsMultiplier > 0 ) {
                         decimal win = game.TripsBet * tripsMultiplier;
-                        //totalWinnings += win;
                         game.TripsWon = true; // Trips bet wins
                         game.TripsPayout = win; // Store the payout for later use
                         resultBuilder.AppendLine( $"✅ **Trips Bet:** Wins **${win:N2}** ({tripsMultiplier}x)!" );
                     }
                     else {
-                        //totalWinnings -= game.TripsBet;
                         game.TripsWon = false; // Trips bet does not win
                         game.TripsPayout = 0; // Trips bet does not pay out
                         resultBuilder.AppendLine( $"❌ **Trips Bet:** You lose ${game.TripsBet:N2}." );
@@ -172,7 +167,6 @@ namespace TCS.HoboBot.Modules.CasinoGames.Poker {
                 }
 
                 result = resultBuilder.ToString();
-                //return /*totalWinnings,*/ resultBuilder.ToString() /*, playerHandDesc*/;
                 return;
             }
             // ---------------------------------------------------------------------------
@@ -180,7 +174,6 @@ namespace TCS.HoboBot.Modules.CasinoGames.Poker {
             // At this point the player stayed in, so we need to evaluate the dealer
             Card[] dealerEvalCards = game.DealerHand.Concat( game.CommunityCards ).ToArray();
             int dealerRanking = HoldemHandEvaluator.GetHandRanking( dealerEvalCards );
-            //var dealerHandCategory = HoldemHandEvaluator.GetHandCategory( dealerRanking );
 
             /*"📝 How to Play",
             "1. **Ante & Blind Bets:** Place equal bets on the Ante and Blind spots. You can also make an optional Trips bet.\n" +
@@ -204,23 +197,18 @@ namespace TCS.HoboBot.Modules.CasinoGames.Poker {
             "  - **Dealer Wins:** You lose Ante, Blind, and Play bets.\n" +
             "  - **Tie:** Ante, Blind, and Play bets push."*/
 
-            //bool dealerQualifies = dealerHandCategory <= PokerHandCategory.OnePair;
-
             if ( game.IsPlayerHigherRank ) // player wins
             {
                 resultBuilder.AppendLine( "🎉 **You win the hand!**\n" );
-                //totalWinnings += game.PlayBet * 2; // Play bet pays 1:1, so we double it
                 game.GameWon = true; // Mark the game as won
                 game.PlayPayout = game.PlayBet * 2; // Store the payout for later use
 
                 if ( game.DealerQualified ) {
-                    //totalWinnings += game.AnteBet * 2;
                     game.AnteWon = true; // Ante bet wins
                     game.AntePayout = game.AnteBet * 2; // Ante bet pays 1:1
                     resultBuilder.AppendLine( $"✅ Play (${game.PlayBet:N2}) and Ante (${game.AnteBet:N2}) bets win." );
                 }
                 else {
-                    //totalWinnings += game.AnteBet; // Ante bet is returned on a push
                     game.AnteWon = false; // Ante bet does not win
                     game.AntePayout = 0; // Ante bet does not pay out
                     resultBuilder.AppendLine( $"✅ Play bet (${game.PlayBet:N2}) wins. Ante pushes (Dealer did not qualify)." );
@@ -229,13 +217,11 @@ namespace TCS.HoboBot.Modules.CasinoGames.Poker {
                 BlindPayouts.TryGetValue( playerHandCategory, out decimal blindMultiplier );
                 if ( blindMultiplier > 0 ) {
                     decimal win = game.BlindBet * blindMultiplier;
-                    //totalWinnings += win;
                     game.BlindWon = true; // Blind bet wins
                     game.BlindPayout = win; // Store the payout for later use
                     resultBuilder.AppendLine( $"✅ **Blind Bet:** Wins **${win:N2}** ({blindMultiplier}x)!" );
                 }
                 else {
-                    //totalWinnings += game.BlindBet; // Add the original Blind bet back on a push
                     game.BlindWon = false; // Blind bet does not win
                     game.BlindPayout = game.BlindBet; // Blind bet pushes
                     resultBuilder.AppendLine( "🅿️ **Blind Bet:** Pushes (hand not a Straight or better)." );
@@ -246,7 +232,6 @@ namespace TCS.HoboBot.Modules.CasinoGames.Poker {
                 game.GameWon = false;
                 decimal loss = game.AnteBet + game.BlindBet + game.PlayBet;
                 resultBuilder.AppendLine( "😭 **Dealer wins the hand.**\n" );
-                //totalWinnings -= loss;
                 resultBuilder.AppendLine( $"❌ All bets lose ($-{loss:N2})." );
             }
             else // tie
@@ -262,13 +247,11 @@ namespace TCS.HoboBot.Modules.CasinoGames.Poker {
 
                 if ( tripsMultiplier > 0 ) {
                     decimal win = game.TripsBet * tripsMultiplier;
-                    //totalWinnings += win;
                     game.TripsWon = true; // Trips bet wins
                     game.TripsPayout = win; // Store the payout for later use
                     resultBuilder.AppendLine( $"✅ **Trips Bet:** Wins **${win:N2}** ({tripsMultiplier}x)!\n" );
                 }
                 else {
-                    //totalWinnings -= game.TripsBet;
                     game.TripsWon = false; // Trips bet does not win
                     game.TripsPayout = 0; // Trips bet does not pay out
                     resultBuilder.AppendLine( $"❌ **Trips Bet:** You lose ${game.TripsBet:N2}.\n" );
@@ -629,15 +612,10 @@ namespace TCS.HoboBot.Modules.CasinoGames.Poker {
             var channelMessage = string.Empty;
             TripsPayouts.TryGetValue( game.PlayerHandCategory, out decimal tripsMultiplier );
 
-            if ( game.NetProfit > game.EntireBet /*+ game.TripsPayout*/ * 4m ) {
+            if ( game.NetProfit > game.EntireBet * 4m ) {
                 channelMessage = $"🎉**WINNER**🎉\n" +
                                  $" {Context.User.Mention} won **${game.NetProfit:N2}**! Playing - Texas Hold'em\n" +
                                  $"Winning hand: **{game.PlayerHandDesc}**";
-                // await Context.Channel.SendMessageAsync(
-                //     $"🎉**WINNER**🎉\n" +
-                //     $" {Context.User.Mention} won **${game.NetProffit:N2}**! Playing - Texas Hold'em\n" +
-                //     $"Winning hand: **{game.PlayerHandDesc}**"
-                // );
             }
 
             if ( game.TripsPayout > game.TripsBet * 5m ) {
