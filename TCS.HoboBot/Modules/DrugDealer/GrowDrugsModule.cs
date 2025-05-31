@@ -1,6 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using Discord.Interactions;
 using TCS.HoboBot.Modules.Moderation;
+using TCS.HoboBot.Services;
 namespace TCS.HoboBot.Modules.DrugDealer;
 
 public class CookDrugsModule : InteractionModuleBase<SocketInteractionContext> {
