@@ -168,15 +168,17 @@ public sealed class MusicModule : InteractionModuleBase<SocketInteractionContext
         }
     }
 
-    // static bool IsBotAlone(IAudioClient? audioClient)
-    // {
-    //     if (audioClient is not IVoiceChannel vc) return true;
-    //
-    //     var users = vc.GetUsersAsync().FlattenAsync().GetAwaiter().GetResult();
-    //
-    //     // Consider bot alone if no other real user is present.
-    //     return users.All(u => u.IsBot);
-    // }
+    static bool IsBotAlone(IVoiceChannel? voiceChannel) {
+        if ( voiceChannel is null ) return true;
+
+        IEnumerable<IGuildUser>? users = voiceChannel
+            .GetUsersAsync()
+            .FlattenAsync()
+            .GetAwaiter()
+            .GetResult();
+
+        return users.All( u => u.IsBot );
+    }
 
 
     // ────────────────────  per-guild state holder  ───────────────
