@@ -1,5 +1,4 @@
-﻿// C#
-using Discord.Interactions;
+﻿using Discord.Interactions;
 using Discord.WebSocket;
 using TCS.HoboBot.Data;
 
