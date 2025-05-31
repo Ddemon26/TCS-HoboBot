@@ -51,24 +51,24 @@ public static class ProstitutionEvents {
     static int ComputeTotalWeight() => Events.Sum( e => e.Weight );
 }
 
-public static class WorkEvents {
+public static class WorkEvents
+{
     // Immutable record representing one work event
     record WorkEvent(
-        int Weight, // relative likelihood (larger = more common)
-        Func<float> Delta, // returns the cash change for this event
+        int Weight,                 // relative likelihood (larger = more common)
+        Func<float> Delta,          // returns the cash change for this event
         Func<float, string> Story); // builds a message with that change
 
     // ---------- Event table ----------
-    // 50 events in total – a mix of good, bad, and neutral outcomes
+    // 20 events – ≈90 % positive, 5 % neutral, 5 % negative
     static readonly WorkEvent[] Events = [
-        // 1) 40% – spare change from a passer‑by
         new(
-            19,
+            5,
             () => RandomNumberGenerator.GetInt32( 10, 100 ), // $10.01–100.00
             d => $"A man in a van picks you up like the mexican you are. He gives you **${d:0.00}** for a few hours of work."
         ),
         new(
-            10,
+            5,
             () => RandomNumberGenerator.GetInt32( 80, 150 ), // $10.01–100.00
             d => $"A man in a van picks you up like the mexican you are. He gives you **${d:0.00}** for a few hours of work."
         ),
@@ -78,22 +78,122 @@ public static class WorkEvents {
             () => 0f,
             _ => "Nobody seems to want to hire a bum like you. **No cash this time.**"
         ),
+        // 1) Day-labour at a building site
+        new(5,
+            () => RandomNumberGenerator.GetInt32(100, 200),
+            d => $"You haul bricks all morning on a construction site and earn **${d:0.00}**."),
 
-        // ... (other events omitted for brevity)
+        // 2) Weekend café shift
+        new(5,
+            () => RandomNumberGenerator.GetInt32(50, 120),
+            d => $"A local café needs an extra pair of hands. You pocket **${d:0.00}** in wages and tips."),
+
+        // 3) Yard-work for a neighbour
+        new(5,
+            () => RandomNumberGenerator.GetInt32(30, 80),
+            d => $"You mow lawns and trim hedges, earning **${d:0.00}**."),
+
+        // 4) Same-day package deliveries
+        new(5,
+            () => RandomNumberGenerator.GetInt32(60, 150),
+            d => $"You spend the afternoon zipping around town with parcels and make **${d:0.00}**."),
+
+        // 5) Bartending a private party
+        new(5,
+            () => RandomNumberGenerator.GetInt32(80, 180),
+            d => $"You mix drinks at a birthday bash and walk away with **${d:0.00}** including tips."),
+
+        // 6) Quick freelance coding fix
+        new(5,
+            () => RandomNumberGenerator.GetInt32(150, 300),
+            d => $"You squash a bug in a client’s app and invoice **${d:0.00}**."),
+
+        // 7) One-hour tutoring session
+        new(5,
+            () => RandomNumberGenerator.GetInt32(40, 90),
+            d => $"You tutor a high-school student and earn **${d:0.00}**."),
+
+        // 8) Overnight pet-sitting
+        new(5,
+            () => RandomNumberGenerator.GetInt32(25, 60),
+            d => $"You feed and walk a neighbour’s dog and receive **${d:0.00}**."),
+
+        // 9) Street performance tips
+        new(5,
+            () => RandomNumberGenerator.GetInt32(10, 70),
+            d => $"Your guitar case fills with **${d:0.00}** in tips."),
+
+        // 10) Temp office admin
+        new(5,
+            () => RandomNumberGenerator.GetInt32(70, 120),
+            d => $"You file paperwork for an afternoon and get **${d:0.00}**."),
+
+        // 11) Weekend car-wash pop-up
+        new(5,
+            () => RandomNumberGenerator.GetInt32(20, 50),
+            d => $"Soapy buckets and elbow grease net you **${d:0.00}**."),
+
+        // 12) Fence-painting job
+        new(5,
+            () => RandomNumberGenerator.GetInt32(30, 90),
+            d => $"You paint a picket fence for **${d:0.00}**."),
+
+        // 13) University research survey
+        new(5,
+            () => RandomNumberGenerator.GetInt32(15, 40),
+            d => $"You answer questions in a psychology lab and earn **${d:0.00}**."),
+
+        // 14) Heavy-lifting / moving furniture
+        new(5,
+            () => RandomNumberGenerator.GetInt32(80, 160),
+            d => $"You help move a sofa up three flights of stairs and make **${d:0.00}**."),
+
+        // 15) Weekend photo shoot assistant
+        new(5,
+            () => RandomNumberGenerator.GetInt32(120, 250),
+            d => $"You hold reflectors and carry gear; the photographer pays **${d:0.00}**."),
+
+        // 16) Part-time security shift
+        new(5,
+            () => RandomNumberGenerator.GetInt32(90, 180),
+            d => $"You keep watch at an event and collect **${d:0.00}**."),
+
+        // 17) Catering kitchen prep
+        new(5,
+            () => RandomNumberGenerator.GetInt32(60, 140),
+            d => $"You chop vegetables for a banquet and take home **${d:0.00}**."),
+
+        // 18) Remote data-entry sprint
+        new(5,
+            () => RandomNumberGenerator.GetInt32(25, 75),
+            d => $"You hammer spreadsheets for a few hours and earn **${d:0.00}**."),
+
+        // 19) Neutral – no gigs today
+        new(5,
+            () => 0f,
+            _ => "You hand out résumés and scroll job boards, but nothing pans out. **No cash this time.**"),
+
+        // 20) Negative – wallet stolen
+        new(5,
+            () => -RandomNumberGenerator.GetInt32(10, 40),
+            d => $"A pick-pocket bumps you on a crowded bus. You lose **${-d:0.00}.**")
     ];
 
     static readonly int TotalWeight = ComputeTotalWeight();
 
     /// <summary>Pick a random event according to the weights.</summary>
-    public static (float Delta, string Story) Roll() {
-        int pick = RandomNumberGenerator.GetInt32( 0, TotalWeight ); // [0, totalWeight)
+    public static (float Delta, string Story) Roll()
+    {
+        int pick = RandomNumberGenerator.GetInt32(0, TotalWeight); // [0, totalWeight)
         var tally = 0;
 
-        foreach (var e in Events) {
+        foreach (var e in Events)
+        {
             tally += e.Weight;
-            if ( pick < tally ) {
+            if (pick < tally)
+            {
                 float delta = e.Delta();
-                return (delta, e.Story( delta ));
+                return (delta, e.Story(delta));
             }
         }
 
@@ -101,15 +201,15 @@ public static class WorkEvents {
         return (0f, "Nothing happens… the streets are quiet.");
     }
 
-    static int ComputeTotalWeight() {
+    static int ComputeTotalWeight()
+    {
         var sum = 0;
-        foreach (var e in Events) {
+        foreach (var e in Events)
             sum += e.Weight;
-        }
-
         return sum;
     }
 }
+
 
 public enum DeltaType {
     Range,
