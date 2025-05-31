@@ -24,3 +24,4 @@ project\.lock\.json
 
 # Build results
 *.BuildInfo\.xml
+/TCS.HoboBot/GoogleGemini
