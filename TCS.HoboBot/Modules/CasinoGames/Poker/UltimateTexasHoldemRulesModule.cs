@@ -6,16 +6,16 @@ using Discord.Interactions;
 namespace TCS.HoboBot.Modules.CasinoGames {
     public sealed class UltimateTexasHoldemRulesModule : InteractionModuleBase<SocketInteractionContext> {
         // Emojis for hand combinations
-        private const string ROYAL_FLUSH_EMOJI = "👑"; // Crown for Royal Flush
-        private const string STRAIGHT_FLUSH_EMOJI = "✨"; // Sparkles for Straight Flush
-        private const string FOUR_OF_A_KIND_EMOJI = "🍀"; // Four Leaf Clover for Quads
-        private const string FULL_HOUSE_EMOJI = "🏠"; // House for Full House
-        private const string FLUSH_EMOJI = "💧"; // Water drop for Flush (same suit)
-        private const string STRAIGHT_EMOJI = "�"; // Upwards chart for Straight
-        private const string THREE_OF_A_KIND_EMOJI = "🎯"; // Target for Trips
-        private const string TWO_PAIR_EMOJI = "✌️"; // Victory hand for Two Pair
-        private const string ONE_PAIR_EMOJI = "☝️"; // Index pointing up for One Pair
-        private const string HIGH_CARD_EMOJI = "🃏"; // Joker for High Card (or generic card)
+        const string ROYAL_FLUSH_EMOJI = "👑"; // Crown for Royal Flush
+        const string STRAIGHT_FLUSH_EMOJI = "✨"; // Sparkles for Straight Flush
+        const string FOUR_OF_A_KIND_EMOJI = "🍀"; // Four Leaf Clover for Quads
+        const string FULL_HOUSE_EMOJI = "🏠"; // House for Full House
+        const string FLUSH_EMOJI = "💧"; // Water drop for Flush (same suit)
+        const string STRAIGHT_EMOJI = "�"; // Upwards chart for Straight
+        const string THREE_OF_A_KIND_EMOJI = "🎯"; // Target for Trips
+        const string TWO_PAIR_EMOJI = "✌️"; // Victory hand for Two Pair
+        const string ONE_PAIR_EMOJI = "☝️"; // Index pointing up for One Pair
+        const string HIGH_CARD_EMOJI = "🃏"; // Joker for High Card (or generic card)
 
         [SlashCommand( "uth-rules", "Displays the rules and payouts for Ultimate Texas Hold'em." )]
         public async Task DisplayUthRules() {
@@ -73,7 +73,7 @@ namespace TCS.HoboBot.Modules.CasinoGames {
 
             embedBuilder.AddField( "💲 Trips Bonus Bet Payouts (pays regardless of dealer's hand)", tripsPayouts.ToString() );
 
-            //embedBuilder.WithFooter( "Payouts may vary by casino. This information is for the bot's game version." );
+            embedBuilder.WithFooter( "Payouts may vary by casino. This information is for the bot's game version." );
 
             await RespondAsync( embed: embedBuilder.Build(),
                 ephemeral: true // Only the user who invoked the command can see this
