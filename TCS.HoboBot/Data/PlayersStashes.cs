@@ -1,6 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using System.Text.Json;
 using Discord.WebSocket;
+using TCS.HoboBot.Services;
 namespace TCS.HoboBot.Modules.DrugDealer;
 
 // public enum DealerRole {
