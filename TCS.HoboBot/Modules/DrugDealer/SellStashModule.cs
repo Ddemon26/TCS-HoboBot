@@ -1,6 +1,7 @@
 ﻿using Discord.Interactions;
 using Discord.WebSocket;
 using TCS.HoboBot.Data;
+using TCS.HoboBot.Services;
 namespace TCS.HoboBot.Modules.DrugDealer;
 
 public struct DealerRoleUpgrade {
@@ -58,7 +59,7 @@ public class SellStashModule : InteractionModuleBase<SocketInteractionContext> {
 
         // apply a role in Discord
         var user = Context.User as SocketGuildUser;
-        await HoboRolesHandler.AddRolesAsync( user, newRole );
+        await HoboBotRolesManager.AddRolesAsync( user, newRole );
 
         // save stash
         PlayersStashes.SaveStash(Context.Guild.Id, Context.User.Id, stash)/* = stash*/;
