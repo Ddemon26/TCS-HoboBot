@@ -132,18 +132,18 @@ public class SlotMachine3X3Module : BaseSlotMachineModule<ThreeXThreeSlotIcon> {
         ThreeXThreeSlotIcon[][] grid, float bet
     ) {
         decimal totalBetMultiplier = 0m;
-        var winDescriptions = new List<string>();
+        List<string> winDescriptions = new List<string>();
 
         for (var i = 0; i < Paylines.Count; i++) {
-            var path = Paylines[i];
-            var symbols = new[] {
+            List<(int r, int c)> path = Paylines[i];
+            ThreeXThreeSlotIcon[] symbols = new[] {
                 grid[path[0].r][path[0].c],
                 grid[path[1].r][path[1].c],
                 grid[path[2].r][path[2].c]
             };
 
             if ( TryGetWinningSymbol( symbols, out var payingSymbol ) ) {
-                var lineMultiplier = GetLinePayoutMultiplier( payingSymbol );
+                decimal lineMultiplier = GetLinePayoutMultiplier( payingSymbol );
                 if ( lineMultiplier > 0 ) {
                     totalBetMultiplier += lineMultiplier;
                     winDescriptions.Add(
