@@ -1,4 +1,5 @@
-﻿using Discord.Interactions;
+﻿using Discord;
+using Discord.Interactions;
 using Discord.WebSocket;
 using TCS.HoboBot.Data;
 
@@ -78,13 +79,26 @@ public class PokerPlayerModule : InteractionModuleBase<SocketInteractionContext>
         else {
             result = "It's a tie! No money changes hands.";
         }
-
-        await RespondAsync(
-            "**FLOWER POKER**\n" +
-            $"{Context.User.Mention} flowers: {FormatHand( playerHand )} ({RankName( playerRank )})\n" +
-            $"{user.Mention} flowers: {FormatHand( opponentHand )} ({RankName( opponentRank )})\n" +
-            result
+        
+        var outputEmbed = BuildUthEmbed(
+            "Flower Poker",
+            $"{Context.User.Mention } vs {user.Mention}",
+            $"Bet: ${bet:0.00}",
+            Color.Green
         );
+        
+        outputEmbed.AddField( Context.User.GlobalName, $"`{FormatHand( playerHand )}`" + $" ({RankName( playerRank )})", inline: true );
+        outputEmbed.AddField( user.GlobalName, $"`{FormatHand( opponentHand )}`" + $" ({RankName( opponentRank )})", inline: true );
+        outputEmbed.AddField( "Result", result, inline: false );
+
+        // await RespondAsync(
+        //     "**FLOWER POKER**\n" +
+        //     $"{Context.User.Mention} flowers: {FormatHand( playerHand )} ({RankName( playerRank )})\n" +
+        //     $"{user.Mention} flowers: {FormatHand( opponentHand )} ({RankName( opponentRank )})\n" +
+        //     result
+        // );
+        
+        await RespondAsync( embed: outputEmbed.Build() );
     }
 
     // ----- Helper methods -------------------------------------------------
@@ -143,4 +157,16 @@ public class PokerPlayerModule : InteractionModuleBase<SocketInteractionContext>
 
     static string FormatHand(IEnumerable<string> hand) 
         => string.Join( " ", hand.Select( c => FlowerIcons.GetValueOrDefault( c, c ) ) );
+    
+    EmbedBuilder BuildUthEmbed(string title, string description, string footer, Color color) {
+        var embed = new EmbedBuilder()
+            .WithAuthor( Context.User.GlobalName, Context.User.GetAvatarUrl() )
+            .WithTitle( title )
+            .WithDescription( description )
+            .WithCurrentTimestamp()
+            .WithColor( color )
+            .WithFooter( footer, Context.User.GetAvatarUrl() );
+
+        return embed;
+    }
 }
