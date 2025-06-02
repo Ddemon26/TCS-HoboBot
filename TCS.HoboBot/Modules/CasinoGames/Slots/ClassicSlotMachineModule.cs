@@ -117,11 +117,11 @@ namespace TCS.HoboBot.Modules.CasinoGames {
             ClassicSlotIcon[][] currentSpin, float bet
         ) {
             decimal totalBetMultiplier = 0m;
-            var winDescriptions = new List<string>();
+            List<string> winDescriptions = new List<string>();
 
             for (var i = 0; i < Paylines.Count; i++) {
-                var path = Paylines[i];
-                var symbols = new[] {
+                List<(int r, int c)> path = Paylines[i];
+                ClassicSlotIcon[] symbols = new[] {
                     currentSpin[path[0].r][path[0].c],
                     currentSpin[path[1].r][path[1].c],
                     currentSpin[path[2].r][path[2].c],
