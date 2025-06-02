@@ -3,6 +3,7 @@ using Discord.Interactions;
 using Discord.WebSocket;
 using TCS.HoboBot.ActionEvents;
 using TCS.HoboBot.Data;
+using TCS.HoboBot.Guilds;
 namespace TCS.HoboBot.Modules.Util;
 
 public class PingModule : InteractionModuleBase<SocketInteractionContext> {
@@ -28,26 +29,50 @@ public class RollModule : InteractionModuleBase<SocketInteractionContext> {
     }
 }
 
+internal record TopHoboCache {
+    public List<ulong> LastTopIds { get; set; } = [];
+    public Dictionary<ulong, string> CachedNames { get; } = new();
+}
+
 public class TopHoboModule : InteractionModuleBase<SocketInteractionContext> {
+    //static readonly TopHoboCache Cache = new();
+    static readonly ConcurrentDictionary<ulong, TopHoboCache> GuildCaches = new();
+
     [SlashCommand( "top", "Check the top hobos!" )]
     public async Task TopAsync() {
-        // get or create this guild's wallet of PlayerWallets
+        await DeferAsync();
+
+        // get or create a per-guild cache
+        var guildCache = GuildCaches.GetOrAdd( Context.Guild.Id, _ => new TopHoboCache() );
+
         ConcurrentDictionary<ulong, PlayerWallet> guildWallets = PlayersWallet.PlayerWallets
             .GetOrAdd( Context.Guild.Id, _ => new ConcurrentDictionary<ulong, PlayerWallet>() );
 
-        // take the top 10 users by Cash
-        IEnumerable<Task<string>> topHoboTasks = guildWallets
+        List<KeyValuePair<ulong, PlayerWallet>> topKvs = guildWallets
             .OrderByDescending( kv => kv.Value.Cash )
             .Take( 10 )
-            .Select( async kv => {
-                    var user = await Context.Client.Rest.GetUserAsync( kv.Key );
-                    string name = user?.GlobalName ?? user?.Username ?? kv.Key.ToString();
-                    return $"{name}: ${kv.Value.Cash:0.00}";
-                }
-            );
+            .ToList();
 
-        string[] topHobos = await Task.WhenAll( topHoboTasks );
-        await RespondAsync( $"Top hobos:\n{string.Join( "\n", topHobos )}" );
+        List<ulong> currentIds = topKvs.Select( kv => kv.Key ).ToList();
+
+        if ( !guildCache.LastTopIds.SequenceEqual( currentIds ) ) {
+            // fetch new users
+            foreach (ulong id in currentIds.Except( guildCache.CachedNames.Keys )) {
+                var user = await GuildManager.GetGuildMember( Context.Guild.Id, id );
+                guildCache.CachedNames[id] = user?.DisplayName ?? id.ToString();
+            }
+
+            // remove stale
+            foreach (ulong old in guildCache.CachedNames.Keys.Except( currentIds ).ToList())
+                guildCache.CachedNames.Remove( old );
+
+            guildCache.LastTopIds = currentIds;
+        }
+
+        IEnumerable<string> lines = topKvs
+            .Select( kv => $"{guildCache.CachedNames[kv.Key]}: ${kv.Value.Cash:0.00}" );
+
+        await FollowupAsync( $"Top hobos:\n{string.Join( "\n", lines )}" );
     }
 }
 
