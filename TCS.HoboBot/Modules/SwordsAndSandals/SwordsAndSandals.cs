@@ -6,45 +6,71 @@ using Discord.Interactions;
 namespace TCS.HoboBot.Modules.SwordsAndSandals;
 
 public class SwordAndSandalsModule : InteractionModuleBase<SocketInteractionContext> {
-    public readonly ConcurrentDictionary<ulong, SasGame> Games = new();
-    [SlashCommand( "swordsandsandals", "Start a Swords & Sandals duel." )]
-    public async Task SwordsAndSandalsAsync() 
-    {
+    const string CMD_PREFIX = "swordsandsandals";
+    const string PLAY_GAME = "play";
+    const string LEAVE = "leave";
+    
+    readonly ConcurrentDictionary<ulong, SasGame> m_games = new();
+    
+    BattleEngine m_battleEngine = new(
+        new BattleGladiator( new Gladiator(), -5 ),
+        new BattleGladiator( new Gladiator(), 5 )
+    );
+    
+    
+    //[SlashCommand( "swordsandsandals", "Start a Swords & Sandals duel." )]
+    public async Task SwordsAndSandalsAsync() {
         await DeferAsync( ephemeral: true );
-        
-        // Check if the user already has a game
-        if ( Games.TryGetValue( Context.User.Id, out var existingGame ) ) {
-            var uthEmbed = BuildUthEmbed(
-                existingGame,
-                "Swords & Sandals Duel",
-                $"You already have an active game with Gladiator: {existingGame.Gladiator}",
-                "Use `/swordsandsandals reset` to start over.",
-                Color.Orange
-            );
-            await RespondAsync( embed: uthEmbed.Build(), ephemeral: true );
-            return;
-        }
 
         // Create a new game for the user
-        var game = new SasGame(Context.User.Id);
-        Games[Context.User.Id] = game;
+        var game = new SasGame( Context.User.Id );
+        m_games[Context.User.Id] = game;
 
         var embed = BuildUthEmbed(
-            game,
-            "Swords & Sandals Duel",
-            "Your gladiator is ready! Use `/swordsandsandals fight` to start the duel.",
-            "Good luck!",
-            Color.Green
-        );
-        await RespondAsync( embed: embed.Build() , ephemeral: true );
-        
+            "Swords & Sandals Game Started",
+            $"{Context.User.Mention} has started a new Swords & Sandals game!",
+            "Get ready to fight!",
+            Color.DarkBlue
+        ).Build();
+
+        var components = new ComponentBuilder()
+            .WithButton( "Play Game", $"{CMD_PREFIX}:{PLAY_GAME}", ButtonStyle.Success )
+            .WithButton( "Leave", $"{CMD_PREFIX}:{LEAVE}", ButtonStyle.Danger )
+            .Build();
+
+        await FollowupAsync( embed: embed, components: components, ephemeral: true );
     }
     
+    [ComponentInteraction( $"{CMD_PREFIX}:{PLAY_GAME}" )]
+    public async Task OnPlayGameAsync() {
+        await DeferAsync();
+        
+        IReadOnlyList<string> result = m_battleEngine.Fight(  
+            _ => CombatAction.NormalAttack, // Placeholder for left player action
+            _ => CombatAction.NormalAttack // Placeholder for right player action
+        );
+
+        var embed = BuildUthEmbed(
+            "Swords & Sandals Duel",
+            string.Join( "\n", result ),
+            "Fight to the death!",
+            Color.DarkRed
+        ).Build();
+        
+        await ModifyOriginalResponseAsync( m => { 
+            m.Embed = embed;
+            m.Components = new ComponentBuilder()
+                .WithButton( "Leave Game", $"{CMD_PREFIX}:{LEAVE}", ButtonStyle.Danger )
+                .Build();
+        } );
+    }
+
+    [ComponentInteraction( $"{CMD_PREFIX}:{LEAVE}" )]
     public async Task OnEndGameAsync() {
         await DeferAsync();
         await ModifyOriginalResponseAsync( m => {
                 m.Embed = new EmbedBuilder()
-                    .WithTitle( "Ultimate Texas Hold'em – Game Over" )
+                    .WithTitle( "Swords & Sandals Game Ended" )
                     .WithDescription( $"{Context.User.Mention} ended the game." )
                     .WithColor( Color.DarkGrey )
                     .Build();
@@ -52,8 +78,8 @@ public class SwordAndSandalsModule : InteractionModuleBase<SocketInteractionCont
             }
         );
     }
-    
-    EmbedBuilder BuildUthEmbed(SasGame game, string title, string description, string footer, Color color) {
+
+    EmbedBuilder BuildUthEmbed(string title, string description, string footer, Color color) {
         var embed = new EmbedBuilder()
             .WithAuthor( Context.User.GlobalName, Context.User.GetAvatarUrl() )
             .WithTitle( title )
@@ -71,7 +97,7 @@ public class SasGame {
     public ulong DiscordUserId { get; set; }
     public int Gold { get; set; }
     public int Wins { get; set; }
-    
+
     public Gladiator Gladiator { get; }
 
     public SasGame(ulong discordUserId) {
@@ -174,9 +200,11 @@ public sealed class Gladiator {
     /// <summary>Aggregate armour value across all equipped pieces.</summary>
     public int TotalArmour() {
         var total = 0;
-        foreach (var piece in m_armour.Values)
+        foreach (var piece in m_armour.Values) {
             if ( piece is not null )
                 total += piece.ArmorValue;
+        }
+
         return total;
     }
 
@@ -299,7 +327,7 @@ public sealed class ItemCatalogue {
 
 /// <summary>
 /// Lightweight, single‑file battle engine that plugs into <see cref="Gladiator"/> and mimics the
-/// 2005 Swords & Sandals turn system. Inspired by the original manual fileciteturn0file0.
+/// 2005 Swords & Sandals turn system. Inspired by the original manual file-citeturn0file0.
 /// </summary>
 public enum CombatAction { Charge, QuickAttack, NormalAttack, PowerAttack, Taunt, Rest }
 
@@ -312,7 +340,7 @@ public sealed class BattleGladiator {
     public int Health { get; private set; }
     public int MaxEnergy { get; }
     public int Energy { get; private set; }
-    public int Position { get; set; } // tiles from arena centre (‑ve = west, +ve = east)
+    public int Position { get; set; } // tiles from an arena centre (‑ve = west, +ve = east)
 
     public bool IsAlive => Health > 0;
 
@@ -376,27 +404,20 @@ public sealed class BattleEngine {
         _right = right;
     }
 
-    /// <summary>
-    /// Runs until one combatant dies or is ring‑out killed. Returns a full turn‑by‑turn transcript.
-    /// </summary>
     public IReadOnlyList<string> Fight(
         Func<BattleGladiator, CombatAction> pickLeft,
         Func<BattleGladiator, CombatAction> pickRight
     ) {
-        List<string> log = new List<string>();
-        var round = 1;
+        List<string> log = [
+            "\n—— Round 1 ———————————————",
+        ];
 
-        while (_left.IsAlive && _right.IsAlive) {
-            log.Add( $"\n—— Round {round} ———————————————" );
+        // Player attacks first
+        ResolveTurn(_left, _right, pickLeft(_left), log);
 
-            ResolveTurn( _left, _right, pickLeft( _left ), log );
-            if ( !_right.IsAlive ) break;
-
-            ResolveTurn( _right, _left, pickRight( _right ), log );
-            if ( !_left.IsAlive ) break;
-
-            round++;
-        }
+        // Enemy only acts if still alive
+        if (_right.IsAlive)
+            ResolveTurn(_right, _left, pickRight(_right), log);
 
         return log;
     }
@@ -467,7 +488,7 @@ public sealed class BattleEngine {
                                     target.Position -= pullAmount;
                                 }
                                 else {
-                                    // Actor on right pulls target (on left) to the right
+                                    // Actor on the right pulls target (on the left) to the right
                                     target.Position += pullAmount;
                                 }
 
