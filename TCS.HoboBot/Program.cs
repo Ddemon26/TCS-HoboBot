@@ -4,6 +4,7 @@ using Discord.Interactions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using TCS.HoboBot.Services;
 
 var host = Host.CreateDefaultBuilder( args )
@@ -11,6 +12,11 @@ var host = Host.CreateDefaultBuilder( args )
             config.AddUserSecrets<Program>();
         }
     )
+    // .ConfigureLogging(logging => {
+    //     logging.ClearProviders();
+    //     logging.AddConsole();
+    //     // Add other providers like Debug, EventLog, Files, etc.
+    // })
     .ConfigureServices( (context, services) => {
             services.Configure<HostOptions>( opt => opt.ShutdownTimeout = TimeSpan.FromSeconds( 30 ) );
 
