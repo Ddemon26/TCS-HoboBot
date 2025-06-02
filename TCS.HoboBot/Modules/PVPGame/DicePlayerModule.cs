@@ -1,4 +1,5 @@
-﻿using Discord.Interactions;
+﻿using Discord;
+using Discord.Interactions;
 using Discord.WebSocket;
 using TCS.HoboBot.Data;
 
@@ -11,7 +12,7 @@ public class DicePlayerModule : InteractionModuleBase<SocketInteractionContext> 
     [SlashCommand( "diceplayer", "Rolls a random number from 1 to 100 and compares it to another user's roll." )]
     public async Task DicePlayerAsync(SocketUser opponent, float bet) {
         if ( bet <= 0 ) {
-            await RespondAsync( "You must bet some cash!" );
+            await RespondAsync( "You must bet some cash!", ephemeral: true );
             return;
         }
 
@@ -33,12 +34,12 @@ public class DicePlayerModule : InteractionModuleBase<SocketInteractionContext> 
         }
 
         if ( PlayersWallet.GetBalance( guildId, userId ) < bet ) {
-            await RespondAsync( $"{Context.User.Mention} doesn't have enough cash!" );
+            await RespondAsync( $"{Context.User.Mention} doesn't have enough cash!", ephemeral: true );
             return;
         }
 
         if ( PlayersWallet.GetBalance( guildId, opponentId ) < bet ) {
-            await RespondAsync( $"{opponent.Mention} doesn't have enough cash!" );
+            await RespondAsync( $"{opponent.Mention} doesn't have enough cash!", ephemeral: true );
             return;
         }
 
@@ -56,7 +57,7 @@ public class DicePlayerModule : InteractionModuleBase<SocketInteractionContext> 
 
         // Set versus cooldown for both users
         var nextAllowed = now.Add( Cooldowns.Cooldown( CooldownKind.Versus ) );
-        Cooldowns.Set( guildId, userId, CooldownKind.Versus, nextAllowed );
+        //Cooldowns.Set( guildId, userId, CooldownKind.Versus, nextAllowed );
         Cooldowns.Set( guildId, opponentId, CooldownKind.Versus, nextAllowed );
 
         var header = $"🎲 {Context.User.Mention} vs {opponent.Mention} 🎲";
@@ -70,6 +71,22 @@ public class DicePlayerModule : InteractionModuleBase<SocketInteractionContext> 
                           $"${PlayersWallet.GetBalance( guildId, userId ):0.00}, {opponent.Mention}: " +
                           $"${PlayersWallet.GetBalance( guildId, opponentId ):0.00}";
 
-        await RespondAsync( $"**DICE GAME**\n{header}\n\n{rolls}\n\n{outcome}\n\n{balances}" );
+        var output = $"{header}\n\n{rolls}\n\n{outcome}\n\n{balances}";
+
+        var embed = BuildUthEmbed( "Dice Game", output, $"Bet: ${bet:0.00}", Color.Blue );
+
+        await RespondAsync( embed: embed.Build() );
+    }
+    
+    EmbedBuilder BuildUthEmbed(string title, string description, string footer, Color color) {
+        var embed = new EmbedBuilder()
+            .WithAuthor( Context.User.GlobalName, Context.User.GetAvatarUrl() )
+            .WithTitle( title )
+            .WithDescription( description )
+            .WithCurrentTimestamp()
+            .WithColor( color )
+            .WithFooter( footer, Context.User.GetAvatarUrl() );
+
+        return embed;
     }
 }
