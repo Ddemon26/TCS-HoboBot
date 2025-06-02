@@ -18,15 +18,15 @@ namespace TCS.HoboBot.Modules.CasinoGames.Slots {
             // --- Build Symbol Payouts Field ---
             var linePayoutsText = new StringBuilder();
             // We read the payout data directly from the main AdvancedSlotMachineModule
-            foreach (var symbolPayout in AdvancedSlotMachineModule.FinalLinePayouts) {
+            foreach (KeyValuePair<AdvancedSlotIcon, IReadOnlyDictionary<int, decimal>> symbolPayout in AdvancedSlotMachineModule.FinalLinePayouts) {
                 var symbol = symbolPayout.Key;
-                var payouts = symbolPayout.Value;
+                IReadOnlyDictionary<int, decimal> payouts = symbolPayout.Value;
 
                 // Get the emoji for the current symbol
-                var emoji = AdvancedSlotMachineModule.IconToEmojiMap.GetValueOrDefault( symbol, "❓" );
+                string emoji = AdvancedSlotMachineModule.IconToEmojiMap.GetValueOrDefault( symbol, "❓" );
 
                 // Format the line like: "🍒 (Nine): 2x: 0.4, 3x: 0.5, 4x: 1.0, 5x: 1.4"
-                var payoutStrings = payouts.Select( p => $"{p.Key}x: **{p.Value}**" );
+                IEnumerable<string> payoutStrings = payouts.Select( p => $"{p.Key}x: **{p.Value}**" );
                 linePayoutsText.AppendLine( $"{emoji} ({symbol}): {string.Join( ", ", payoutStrings )}" );
             }
 
@@ -34,14 +34,14 @@ namespace TCS.HoboBot.Modules.CasinoGames.Slots {
 
             // --- Build Special Symbols Field ---
             var specialSymbolsText = new StringBuilder();
-            var wildEmoji = AdvancedSlotMachineModule.IconToEmojiMap[AdvancedSlotIcon.Wild];
-            var scatterEmoji = AdvancedSlotMachineModule.IconToEmojiMap[AdvancedSlotIcon.Scatter];
-            var minigameEmoji = AdvancedSlotMachineModule.IconToEmojiMap[AdvancedSlotIcon.MiniGame];
+            string wildEmoji = AdvancedSlotMachineModule.IconToEmojiMap[AdvancedSlotIcon.Wild];
+            string scatterEmoji = AdvancedSlotMachineModule.IconToEmojiMap[AdvancedSlotIcon.Scatter];
+            string minigameEmoji = AdvancedSlotMachineModule.IconToEmojiMap[AdvancedSlotIcon.MiniGame];
 
             specialSymbolsText.AppendLine( $"{wildEmoji} **Wild:** Substitutes for any symbol except {scatterEmoji} and {minigameEmoji}." );
 
             // Build the scatter payout description
-            var scatterPayouts = AdvancedSlotMachineModule.FixedScatterPayouts
+            IEnumerable<string> scatterPayouts = AdvancedSlotMachineModule.FixedScatterPayouts
                 .Select( p => $"{p.Key} = **{p.Value}x**" );
             specialSymbolsText.AppendLine( $"{scatterEmoji} **Scatter:** Pays when 2 or more appear anywhere. ({string.Join( ", ", scatterPayouts )})" );
 
@@ -50,11 +50,11 @@ namespace TCS.HoboBot.Modules.CasinoGames.Slots {
 
             // --- Build Mini-Game Payouts Field ---
             var miniGamePayoutsText = new StringBuilder();
-            var payoutChunks = AdvancedSlotMachineModule.MiniGamePayouts
+            IEnumerable<string[]> payoutChunks = AdvancedSlotMachineModule.MiniGamePayouts
                 .Select( p => $"{p.Key}{minigameEmoji} = **{p.Value}x**" )
                 .Chunk( 3 ); // Group payouts into chunks of 3 for better formatting
 
-            foreach (var chunk in payoutChunks) {
+            foreach (string[] chunk in payoutChunks) {
                 miniGamePayoutsText.AppendLine( string.Join( " | ", chunk ) );
             }
 
