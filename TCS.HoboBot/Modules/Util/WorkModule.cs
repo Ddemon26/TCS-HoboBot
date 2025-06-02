@@ -15,9 +15,6 @@ public class WorkModule : InteractionModuleBase<SocketInteractionContext> {
 
     [SlashCommand( "work", "Work hard for your money!" )]
     public async Task WorkAsync() {
-        // Acknowledge immediately to avoid timeout
-        await DeferAsync();
-
         ulong userId = Context.User.Id;
         var now = DateTimeOffset.UtcNow;
 
@@ -35,6 +32,8 @@ public class WorkModule : InteractionModuleBase<SocketInteractionContext> {
         // ---------------- Roll event ----------------
         (float delta, string story) = WorkEvents.Roll();
 
+        // Acknowledge immediately to avoid timeout
+        // await DeferAsync();
         // var systemInstruction = $"your story must be under 500 chars but above 100 chars, " +
         //                         $"Please create a bad story using this backstory about {Context.User.Username}. " +
         //                         $"Format responses clearly, using Markdown where appropriate for readability (e.g., bolding, bullet points, code blocks).";
