@@ -27,7 +27,7 @@ public class BotService : BackgroundService {
     readonly List<ulong> m_guildIds = [];
     Timer? m_timer;
     const float SAVE_INTERVAL = 30f; // In minutes
-    TimeSpan SaveInterval => TimeSpan.FromMinutes( SAVE_INTERVAL );
+    static TimeSpan SaveInterval => TimeSpan.FromMinutes( SAVE_INTERVAL );
 
     public BotService(
         DiscordSocketClient client,
@@ -117,6 +117,7 @@ public class BotService : BackgroundService {
 
     async Task Client_ReadyAsync() {
         try {
+#pragma warning disable CS0162 // Unreachable code detected
             if ( !IS_GLOBAL_REGISTRY ) {
                 m_guildIds.Clear(); // Clear previous IDs if any
                 foreach (var guild in m_client.Guilds) {
@@ -136,10 +137,15 @@ public class BotService : BackgroundService {
                     m_logger.LogWarning( "GuildManager initialization failed. No guild members loaded." );
                 }
             }
+#pragma warning restore CS0162 // Unreachable code detected
 #pragma warning disable CS0162 // Unreachable code detected - This is intentional based on IS_GLOBAL_REGISTRY
             else {
                 m_logger.LogInformation( "Registering commands globally..." );
                 await m_interactions.RegisterCommandsGloballyAsync( deleteMissing: true );
+                
+                if ( await GuildManager.Initialize( m_client ) ) {
+                    m_logger.LogInformation( "Guild members loaded for {GuildCount} guilds.", m_guildIds.Count );
+                }
             }
 #pragma warning restore CS0162 // Unreachable code detected
 
