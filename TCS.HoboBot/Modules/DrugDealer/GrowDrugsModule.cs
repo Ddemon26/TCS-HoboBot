@@ -14,12 +14,12 @@ public class CookDrugsModule : InteractionModuleBase<SocketInteractionContext> {
         var stash = PlayersStashes.GetStash(Context.Guild.Id,  userId );
 
         var requiredRole = type switch {
-            CookType.Cocaine => DealerRole.PettyDrugDealer,
-            CookType.Heroin => DealerRole.StreetDealer,
-            CookType.Crack => DealerRole.Pimp,
-            CookType.Meth => DealerRole.Kingpin,
-            CookType.Lsd => DealerRole.DrugLord,
-            CookType.Ecstasy => DealerRole.Underboss,
+            CookType.Cocaine => HoboBotRoles.PettyDrugDealer,
+            CookType.Heroin => HoboBotRoles.StreetDealer,
+            CookType.Crack => HoboBotRoles.Pimp,
+            CookType.Meth => HoboBotRoles.Kingpin,
+            CookType.Lsd => HoboBotRoles.DrugLord,
+            CookType.Ecstasy => HoboBotRoles.Underboss,
             _ => throw new ArgumentOutOfRangeException( nameof(type), type, null ),
         };
 
@@ -69,9 +69,9 @@ public class GrowDrugsModule : InteractionModuleBase<SocketInteractionContext> {
         var stash = PlayersStashes.GetStash( Context.Guild.Id, userId );
 
         var requiredRole = type switch {
-            GrowType.Weed => DealerRole.LowLevelDealer,
-            GrowType.Shrooms => DealerRole.PettyDrugDealer,
-            GrowType.Dmt => DealerRole.Godfather,
+            GrowType.Weed => HoboBotRoles.LowLevelDealer,
+            GrowType.Shrooms => HoboBotRoles.PettyDrugDealer,
+            GrowType.Dmt => HoboBotRoles.Godfather,
             _ => throw new ArgumentOutOfRangeException( nameof(type), type, null ),
         };
 
