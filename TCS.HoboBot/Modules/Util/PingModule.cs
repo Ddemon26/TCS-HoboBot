@@ -63,8 +63,9 @@ public class TopHoboModule : InteractionModuleBase<SocketInteractionContext> {
             }
 
             // remove stale
-            foreach (ulong old in guildCache.CachedNames.Keys.Except( currentIds ).ToList())
+            foreach (ulong old in guildCache.CachedNames.Keys.Except( currentIds ).ToList()) {
                 guildCache.CachedNames.Remove( old );
+            }
 
             guildCache.LastTopIds = currentIds;
         }
