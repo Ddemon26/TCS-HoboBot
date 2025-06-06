@@ -8,19 +8,20 @@ namespace TCS.HoboBot.Services;
 
 //────────────────────────── ENUM & RECORD ──────────────────────────//
 
-public enum DealerRole {
-    LowLevelDealer,
-    PettyDrugDealer,
-    StreetDealer,
-    Pimp,
-    Kingpin,
-    DrugLord,
-    Underboss,
-    Godfather,
+public enum HoboBotRoles {
+    //Default = 0, // 0x54DA0D
+    LowLevelDealer, // 0x3498db
+    PettyDrugDealer, // 0x2ecc71
+    StreetDealer, // 0x95a5a6
+    Pimp, // 0xe67e22
+    Kingpin, // 0xe74c3c
+    DrugLord, // 0x8e44ad
+    Underboss, // 0x2c3e50 
+    Godfather, // 0x34495e
 }
 
 public readonly record struct RoleSpec(
-    DealerRole Key,
+    HoboBotRoles Key,
     string Name,
     GuildPermissions Permissions,
     Color? Color = null,
@@ -32,14 +33,14 @@ public readonly record struct RoleSpec(
 public sealed class RoleService : IHostedService, IDisposable {
     /*── canonical spec list – tweak to taste ──*/
     static readonly RoleSpec[] Specs = [
-        new(DealerRole.LowLevelDealer, "LowLevelDealer", GuildPermissions.None, new Color( 0x3498db )),
-        new(DealerRole.PettyDrugDealer, "PettyDrugDealer", GuildPermissions.None, new Color( 0x2ecc71 )),
-        new(DealerRole.StreetDealer, "StreetDealer", GuildPermissions.None, new Color( 0x95a5a6 )),
-        new(DealerRole.Pimp, "Pimp", GuildPermissions.None, new Color( 0xe67e22 )),
-        new(DealerRole.Kingpin, "Kingpin", GuildPermissions.None, new Color( 0xe74c3c )),
-        new(DealerRole.DrugLord, "DrugLord", GuildPermissions.None, new Color( 0x8e44ad )),
-        new(DealerRole.Underboss, "Underboss", GuildPermissions.None, new Color( 0x2c3e50 )),
-        new(DealerRole.Godfather, "Godfather", GuildPermissions.None, new Color( 0x34495e )),
+        new(HoboBotRoles.LowLevelDealer, "LowLevelDealer", GuildPermissions.None, new Color( 0x3498db )),
+        new(HoboBotRoles.PettyDrugDealer, "PettyDrugDealer", GuildPermissions.None, new Color( 0x2ecc71 )),
+        new(HoboBotRoles.StreetDealer, "StreetDealer", GuildPermissions.None, new Color( 0x95a5a6 )),
+        new(HoboBotRoles.Pimp, "Pimp", GuildPermissions.None, new Color( 0xe67e22 )),
+        new(HoboBotRoles.Kingpin, "Kingpin", GuildPermissions.None, new Color( 0xe74c3c )),
+        new(HoboBotRoles.DrugLord, "DrugLord", GuildPermissions.None, new Color( 0x8e44ad )),
+        new(HoboBotRoles.Underboss, "Underboss", GuildPermissions.None, new Color( 0x2c3e50 )),
+        new(HoboBotRoles.Godfather, "Godfather", GuildPermissions.None, new Color( 0x34495e )),
     ];
 
     static readonly JsonSerializerOptions Json =
@@ -74,7 +75,7 @@ public sealed class RoleService : IHostedService, IDisposable {
                 r => r.Name, r => r, StringComparer.OrdinalIgnoreCase
             );
 
-            Dictionary<DealerRole, ulong> map = HoboBotRolesManager.GetCache().GetOrAdd( guild.Id, _ => new Dictionary<DealerRole, ulong>() );
+            Dictionary<HoboBotRoles, ulong> map = HoboBotRolesManager.GetCache().GetOrAdd( guild.Id, _ => new Dictionary<HoboBotRoles, ulong>() );
 
             foreach (var spec in Specs) {
                 ct.ThrowIfCancellationRequested();
@@ -112,6 +113,47 @@ public sealed class RoleService : IHostedService, IDisposable {
             gate.Release();
         }
     }
+    
+    /*async Task AssignDefaultRoleToUnrankedAsync(SocketGuild guild, CancellationToken ct = default) {
+        if ( !guild.CurrentUser.GuildPermissions.ManageRoles ) {
+            return;
+        }
+
+        // Get the role mapping cache for the guild.
+        ConcurrentDictionary<ulong, Dictionary<HoboBotRoles, ulong>> cache = HoboBotRolesManager.GetCache();
+        if ( !cache.TryGetValue( guild.Id, out Dictionary<HoboBotRoles, ulong>? roleMapping ) ) {
+            return;
+        }
+
+        // Retrieve the default role.
+        if ( !roleMapping.TryGetValue( HoboBotRoles.Default, out ulong defaultRoleId ) ) {
+            return;
+        }
+
+        IRole? defaultRole = guild.GetRole( defaultRoleId );
+        if ( defaultRole is null ) {
+            return;
+        }
+
+        // Iterate all guild members.
+        foreach (var member in guild.Users) {
+            ct.ThrowIfCancellationRequested();
+
+            var hasRank = false;
+            foreach (IRole role in member.Roles) {
+                // If user already has any role from the rank mapping other than default.
+                if ( roleMapping.ContainsValue( role.Id ) && role.Id != defaultRole.Id ) {
+                    hasRank = true;
+                    break;
+                }
+            }
+
+            // If member has no rank roles, add the default role.
+            if ( !hasRank ) {
+                await member.AddRoleAsync( defaultRole, new RequestOptions { CancelToken = ct } );
+            }
+        }
+    }*/
 
     //────────────────────────── internals ─────────────────────────//
 
@@ -160,12 +202,12 @@ public sealed class RoleService : IHostedService, IDisposable {
 
         try {
             string json = File.ReadAllText( m_cachePath );
-            ConcurrentDictionary<ulong, Dictionary<DealerRole, ulong>> newCache = JsonSerializer.Deserialize<ConcurrentDictionary<ulong, Dictionary<DealerRole, ulong>>>( json, Json )
-                                                                                  ?? new ConcurrentDictionary<ulong, Dictionary<DealerRole, ulong>>();
+            ConcurrentDictionary<ulong, Dictionary<HoboBotRoles, ulong>> newCache = JsonSerializer.Deserialize<ConcurrentDictionary<ulong, Dictionary<HoboBotRoles, ulong>>>( json, Json )
+                                                                                  ?? new ConcurrentDictionary<ulong, Dictionary<HoboBotRoles, ulong>>();
 
-            ConcurrentDictionary<ulong, Dictionary<DealerRole, ulong>> cache = HoboBotRolesManager.GetCache();
+            ConcurrentDictionary<ulong, Dictionary<HoboBotRoles, ulong>> cache = HoboBotRolesManager.GetCache();
             cache.Clear();
-            foreach (KeyValuePair<ulong, Dictionary<DealerRole, ulong>> entry in newCache) {
+            foreach (KeyValuePair<ulong, Dictionary<HoboBotRoles, ulong>> entry in newCache) {
                 cache.TryAdd( entry.Key, entry.Value );
             }
         }
