@@ -6,17 +6,17 @@ namespace TCS.HoboBot;
 
 public static class HoboBotRolesManager {
     // Make the cache field private.
-    static readonly ConcurrentDictionary<ulong, Dictionary<DealerRole, ulong>> Cache = new();
+    static readonly ConcurrentDictionary<ulong, Dictionary<HoboBotRoles, ulong>> Cache = new();
 
     // Public accessor method to return the cache.
-    public static ConcurrentDictionary<ulong, Dictionary<DealerRole, ulong>> GetCache()
+    public static ConcurrentDictionary<ulong, Dictionary<HoboBotRoles, ulong>> GetCache()
     {
         return Cache;
     }
     
-    public static async Task AddRolesAsync(SocketGuildUser? user, DealerRole key, CancellationToken ct = default) {
+    public static async Task AddRolesAsync(SocketGuildUser? user, HoboBotRoles key, CancellationToken ct = default) {
         // Remove any other canonical role
-        foreach (var otherKey in Enum.GetValues<DealerRole>()) {
+        foreach (var otherKey in Enum.GetValues<HoboBotRoles>()) {
             if ( otherKey == key ) {
                 continue;
             }
@@ -26,17 +26,17 @@ public static class HoboBotRolesManager {
 
         await AddRoleAsync( user, key, ct );
     }
-    static Task AddRoleAsync(SocketGuildUser? user, DealerRole key, CancellationToken ct = default)
+    static Task AddRoleAsync(SocketGuildUser? user, HoboBotRoles key, CancellationToken ct = default)
         => user != null && Resolve( user.Guild, key ) is { } role && !user.Roles.Contains( role )
             ? user.AddRoleAsync( role, options: new RequestOptions { CancelToken = ct } )
             : Task.CompletedTask;
-    static Task RemoveRoleAsync(SocketGuildUser? user, DealerRole key, CancellationToken ct = default)
+    static Task RemoveRoleAsync(SocketGuildUser? user, HoboBotRoles key, CancellationToken ct = default)
         => user != null && Resolve( user.Guild, key ) is { } role && user.Roles.Contains( role )
             ? user.RemoveRoleAsync( role, options: new RequestOptions { CancelToken = ct } )
             : Task.CompletedTask;
     /// <summary>Resolve a canonical role without extra API calls.</summary>
-    static SocketRole? Resolve(SocketGuild guild, DealerRole key) =>
-        Cache.TryGetValue( guild.Id, out Dictionary<DealerRole, ulong>? map ) && map.TryGetValue( key, out ulong id )
+    static SocketRole? Resolve(SocketGuild guild, HoboBotRoles key) =>
+        Cache.TryGetValue( guild.Id, out Dictionary<HoboBotRoles, ulong>? map ) && map.TryGetValue( key, out ulong id )
             ? guild.GetRole( id )
             : null;
 }
