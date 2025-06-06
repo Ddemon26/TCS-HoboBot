@@ -5,10 +5,10 @@ using TCS.HoboBot.Services;
 namespace TCS.HoboBot.Modules.DrugDealer;
 
 public struct DealerRoleUpgrade {
-    public DealerRole Role { get; }
+    public HoboBotRoles Role { get; }
     public int Amount { get; }
 
-    public DealerRoleUpgrade(DealerRole role, int amount) {
+    public DealerRoleUpgrade(HoboBotRoles role, int amount) {
         Role = role;
         Amount = amount;
     }
@@ -16,19 +16,19 @@ public struct DealerRoleUpgrade {
 
 public class SellStashModule : InteractionModuleBase<SocketInteractionContext> {
     public static readonly DealerRoleUpgrade[] RoleUpgrades = {
-        new(DealerRole.PettyDrugDealer, 10_000),
-        new(DealerRole.StreetDealer, 25_000),
-        new(DealerRole.Pimp, 50_000),
-        new(DealerRole.Kingpin, 250_000),
-        new(DealerRole.DrugLord, 500_000),
-        new(DealerRole.Underboss, 1_000_000),
-        new(DealerRole.Godfather, 2_500_000),
+        new(HoboBotRoles.PettyDrugDealer, 10_000),
+        new(HoboBotRoles.StreetDealer, 25_000),
+        new(HoboBotRoles.Pimp, 50_000),
+        new(HoboBotRoles.Kingpin, 250_000),
+        new(HoboBotRoles.DrugLord, 500_000),
+        new(HoboBotRoles.Underboss, 1_000_000),
+        new(HoboBotRoles.Godfather, 2_500_000),
     };
 
-    public DealerRole GetDealerUpgrade(float amount) {
+    public HoboBotRoles GetDealerUpgrade(float amount) {
         for (int i = 0; i < RoleUpgrades.Length; i++) {
             if ( amount < RoleUpgrades[i].Amount ) {
-                return i == 0 ? DealerRole.LowLevelDealer : RoleUpgrades[i - 1].Role;
+                return i == 0 ? HoboBotRoles.LowLevelDealer : RoleUpgrades[i - 1].Role;
             }
         }
 
