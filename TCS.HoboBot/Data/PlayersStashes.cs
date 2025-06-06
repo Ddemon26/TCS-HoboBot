@@ -171,7 +171,7 @@ public static class PlayersStashes {
 }
 
 [Serializable] public class PlayerStash {
-    public DealerRole Role { get; set; } = DealerRole.LowLevelDealer;
+    public HoboBotRoles Role { get; set; } = HoboBotRoles.LowLevelDealer;
     public int WeedAmount { get; set; }
     public int ShroomsAmount { get; set; }
     public int CocaineAmount { get; set; }
