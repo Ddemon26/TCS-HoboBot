@@ -129,8 +129,8 @@ namespace Tests;
         var totalPayout = 0m;
         var rng = new Random();
         for (var i = 0; i < PRE_SIMULATION_ROUNDS; i++) {
-            AdvancedSlotIcon[][] grid = HyperOptimizedRtpTests.SpinGrid( rng );
-            (decimal payout, _) = AdvancedSlotMachineModule.CalculateGridPayout( grid, AdvancedSlotMachineModule.ROWS, AdvancedSlotMachineModule.COLS );
+            AdvancedSlotIcon[][] grid = HyperOptimizedRtpTests.SpinGrid(rng);
+            (decimal payout, _) = AdvancedSlotMachineModule.CalculateGridPayout(grid, AdvancedSlotMachineModule.ROWS, AdvancedSlotMachineModule.COLS, AdvancedSlotMachineModule.PaylinesFor5X5Grid);
             totalPayout += payout;
         }
 
@@ -145,12 +145,12 @@ namespace Tests;
         var rng = new Random();
 
         for (var i = 0; i < PRE_SIMULATION_ROUNDS; i++) {
-            AdvancedSlotIcon[][] grid = HyperOptimizedRtpTests.SpinGrid( rng );
-            (decimal payout, _) = AdvancedSlotMachineModule.CalculateGridPayout( grid, AdvancedSlotMachineModule.ROWS, AdvancedSlotMachineModule.COLS );
+            AdvancedSlotIcon[][] grid = HyperOptimizedRtpTests.SpinGrid(rng);
+            (decimal payout, _) = AdvancedSlotMachineModule.CalculateGridPayout(grid, AdvancedSlotMachineModule.ROWS, AdvancedSlotMachineModule.COLS, AdvancedSlotMachineModule.PaylinesFor5X5Grid);
             totalOverallPayoutSum += payout;
 
-            int scatterCount = grid.SelectMany( r => r ).Count( s => s == AdvancedSlotIcon.Scatter );
-            decimal scatterPayout = AdvancedSlotMachineModule.GetAdjustedScatterPayout( scatterCount );
+            int scatterCount = grid.SelectMany(r => r).Count(s => s == AdvancedSlotIcon.Scatter);
+            decimal scatterPayout = AdvancedSlotMachineModule.GetAdjustedScatterPayout(scatterCount);
             totalScatterOnlyPayoutSum += scatterPayout;
         }
 
