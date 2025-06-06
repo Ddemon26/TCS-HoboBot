@@ -98,6 +98,108 @@ public class MessageResponderService : BackgroundService // Changed from IHosted
             await msg.Channel.SendMessageAsync( "5 foot 4 and a total whore" );
             return;
         }
+        
+        ulong m_goodUser = 268654531452207105; // Example guild ID, replace with actual
+        if ( msg.Author.Id == m_goodUser ) {
+            await msg.AddReactionAsync( new Emoji( "👍" ));
+        }
+        
+        /*ulong[] m_customEmoteIds = {
+            1122031638461812807,
+            1277021148013658234,
+            1277034375871074377,
+        };
+        
+        if (msg.Author.Id == m_goodUser)
+        {
+            var allEmojiUnicodes = NamesAndUnicodes.Values;
+            var emotesToAdd = allEmojiUnicodes.Select(unicode => new Discord.Emoji(unicode));
+            //pick 20 emojis randomly
+            var random = new Random();
+            var reactions = emotesToAdd.OrderBy(_ => random.Next()).Take(20).ToArray();
+            var options = new RequestOptions { AuditLogReason = "Adding reactions to message" };
+            try
+            {
+                // Your existing code to add reactions
+                await msg.AddReactionsAsync(reactions, options);
+            }
+            catch (Discord.Net.HttpException ex) when (ex.HttpCode == System.Net.HttpStatusCode.BadRequest && ex.DiscordCode == Discord.DiscordErrorCode.MaximumReactionsReached)
+            {
+                // Log that the maximum number of reactions was reached
+                Console.WriteLine($"Could not add reactions to message {s.Id}: Maximum reactions reached.");
+                // Optionally, inform the user or take other actions
+            }
+            catch (Exception ex)
+            {
+                // Handle other potential exceptions
+                Console.WriteLine($"An error occurred: {ex.Message}");
+            }
+        }*/
+        
+        // Emoji[] m_customEmotes = {
+        //     new Emoji( "👁️" ),
+        //     new Emoji( "👃" ),
+        //     new Emoji( "🧿" ),
+        // };
+        
+        // if ( msg.Author.Id == m_goodUser ) {
+        //     await msg.AddReactionsAsync( m_customEmotes );
+        // }
+
+        /*if ( msg.Author.Id == m_goodUser ){
+            List<IEmote> emotesToReactWith = new();
+            foreach (var emoteId in m_customEmoteIds)
+            {
+                IEmote? foundEmote = null;
+                foreach (var guild in m_client.Guilds)
+                {
+                    var emote = guild.Emotes.FirstOrDefault(e => e.Id == emoteId);
+                    if (emote != null)
+                    {
+                        foundEmote = emote;
+                        break; 
+                    }
+                }
+
+                if (foundEmote != null)
+                {
+                    emotesToReactWith.Add(foundEmote);
+                }
+                else
+                {
+                    m_logger?.LogWarning($"Custom emote with ID {emoteId} not found or not accessible by the bot.");
+                }
+            }
+
+            if (emotesToReactWith.Any())
+            {
+                await msg.AddReactionsAsync(emotesToReactWith.ToArray());
+            }
+            else
+            {
+                m_logger?.LogWarning($"None of the specified custom emotes were found or accessible by the bot.");
+            }
+            return;
+        }*/
+        //880163694443659356
+        // Emoji[] m_badCustomEmotes = {
+        //     new Emoji( "🇳" ),
+        //     new Emoji( "🇮" ),
+        //     new Emoji( "🇬" ),
+        //     new Emoji( "🔂" ),
+        //     new Emoji( "🇪" ),
+        //     new Emoji( "🇷" ),
+        // };
+        
+        ulong[] m_badUsers = {
+            880163694443659356, // Example user ID, replace with actual
+        };
+        if ( m_badUsers.Contains( msg.Author.Id ) ) {
+            // react to the message with a thumbs down
+            //await msg.AddReactionsAsync( m_badCustomEmotes );
+            await msg.AddReactionAsync( new Emoji("👎") );
+            return;
+        }
     }
     
     #region Anti‑spam logic
