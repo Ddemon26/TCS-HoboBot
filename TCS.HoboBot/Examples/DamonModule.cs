@@ -180,7 +180,7 @@ namespace TCS.HoboBot.Modules {
                 )
                 .WithThumbnailUrl( LOGO_URL )
                 .AddField( "✨ Creativity", "Turning wild ideas into polished prototypes", true )
-                .AddField( "🔧 Tech Stack", "`C#` · `.NET 8` · `Unity` · `TypeScript` · `Java` · JavaScript", true )
+                .AddField( "🔧 Tech Stack", "`C#` · `.NET 8` · `Unity` · `Cpp` · `TypeScript` · `Java` · `JavaScript`", true )
                 .AddField( "🚀 Highlights", "• Released *HoboBot* **v2.0** (May 2025)", false )
                 .WithFooter( "Tap a button below to explore • card refreshes each summon", LOGO_URL )
                 .WithTimestamp( DateTimeOffset.UtcNow );
@@ -207,10 +207,9 @@ namespace TCS.HoboBot.Modules {
 
             return new ComponentBuilder()
                 .WithSelectMenu( menu ) // SelectMenu will be on row 0
-                .WithButton( "Join Server 💬", customId: INVITE_ID, style: ButtonStyle.Success, row: 1 )
                 .WithButton( "Visit GitHub 🌐", url: PROFILE_URL, style: ButtonStyle.Link, row: 1 )
                 .WithButton( "Website 🌍", url: WEBSITE_URL, style: ButtonStyle.Link, row: 1 )
-                .WithButton( "HoboBot Repo⚙️", url: HUB_BOT_REPO, style: ButtonStyle.Link, row: 2 )
+                .WithButton( "HoboBot Repo⚙️", url: HUB_BOT_REPO, style: ButtonStyle.Link, row: 1 )
                 .WithButton( "Send Feedback 📝", customId: FEEDBACK_ID, style: ButtonStyle.Secondary, row: 2 );
         }
 
