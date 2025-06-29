@@ -175,12 +175,13 @@ namespace TCS.HoboBot.Modules {
                 .WithTitle( "👑 Damon · Creative Technomancer" )
                 .WithDescription(
                     "Part storyteller, part engineer – Damon crafts **delightful** digital experiences & open‑source wonders.\n" +
-                    "**Exploring now:** AI agents · WebAssembly bots · Real‑time collab"
+                    "**Exploring now:** HoboBot **v2.0** – a playful, open‑source Discord bot for TCS.\n" +
+                    "Runescape 2006 Private Server (RSPVP) – a nostalgic, open‑source PvP game."
                 )
                 .WithThumbnailUrl( LOGO_URL )
                 .AddField( "✨ Creativity", "Turning wild ideas into polished prototypes", true )
-                .AddField( "🔧 Tech Stack", "`C#` · `.NET 8` · `Unity` · `TypeScript`", true )
-                .AddField( "🚀 Highlights", "• Released *HoboBot* **v2.0** (May 2025)\n• Keynote Speaker @ DevCon 2025\n• 3× Hackathon winner", false )
+                .AddField( "🔧 Tech Stack", "`C#` · `.NET 8` · `Unity` · `TypeScript` · `Java` · JavaScript", true )
+                .AddField( "🚀 Highlights", "• Released *HoboBot* **v2.0** (May 2025)", false )
                 .WithFooter( "Tap a button below to explore • card refreshes each summon", LOGO_URL )
                 .WithTimestamp( DateTimeOffset.UtcNow );
 
